@@ -1,0 +1,18 @@
+Package: aae.data
+Type: Package
+Title: Load and Check AAE Data
+Version: 0.1.0
+Date: 2020-04-14
+Authors@R:
+    c(person(given = "Jian",
+             family = "Yen",
+             role = c("aut", "cre"),
+             email = "jdl.yen@gmail.com"),
+      person(given = "Arthur Rylah Institute for Environmental Research",
+             role = c("cph", "fnd")))
+Description: A tool to access AAE data and associated flow data from
+    their source, supporting fast calculation of summary statistics
+    and flow metrics.
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
