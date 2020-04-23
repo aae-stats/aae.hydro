@@ -1,35 +1,101 @@
-# functions to calculate flow metrics from streamflow data downloaded with \link{\code{fetch_flow}}.
+# functions to calculate metrics from streamflow or related data downloaded with \link{\code{fetch_flow}}.
 
-define_target <- function(date, settings) {
+# main function to calculate metrics at a given resolution
+calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...) {
 
-  # deal with subset
-
-  ## PROBABLY shift this to define_interval?
-  ## seems to be some repitition in here
-  if (!is.null(settings$subset)) {
-    if (settings$type == "baseline") {
-      subset <- 1:12
-      months %in% subset
-    } else {
-      subset <- parse_date_time(settings$subset, order = c("y", "dmy", "ymd", "my", "ym"))
-      subset <- subset[1] %--% subset[2]
-      date <- date[date %within% subset]
-    }
+  # reduce value and date to subset if required, but keep a full copy for rescale
+  if (!is.null(resolution$subset)) {
+    idx <- identify_subset(date, resolution)
+    rescale_date <- date
+    rescale_value <- value
+    date <- date[idx]
+    value <- value[idx]
   }
+
+  # define minimal target, accounting for possible lag
+  target <- define_target(date, resolution)
+
+  # work out which dates line up with intervals defined by resolution
+  intervals <- lapply(target, define_interval, date = date, settings = resolution)
+
+  # calculate `fun` for each survey year
+  out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
+
+  # check whether we need to rescale the output
+  if (!is.null(rescale)) {
+
+    # if so, set some defaults
+    rescale_list <- list(
+      subset = min(year(rescale_date)):max(year(rescale_date)),
+      fun = median,
+      season = 1:12,
+      args = list()
+    )
+
+    # and overwrite these if specified
+    rescale_list[names(rescale)]  <- rescale
+
+    # define settings for baseline calculation
+    baseline_settings <- baseline(season = rescale_list$season, subset = rescale_list$subset)
+
+    # reduce value and date to subset if required
+    if (!is.null(rescale_list$subset)) {
+      idx <- identify_subset(rescale_date, baseline_settings)
+      rescale_date <- rescale_date[idx]
+      rescale_value <- rescale_value[idx]
+    }
+
+    # now calculate the target for baseline calculation
+    rescale_target <- define_target(rescale_date, settings = baseline_settings)
+    rescale_interval <- define_interval(rescale_target, date = rescale_date, settings = baseline_settings)
+
+    # now calculate `fun` for what's left
+    baseline <- do.call(rescale_list$fun, c(list(rescale_value[rescale_interval]), rescale_list$args))
+
+    # and rescale output
+    out <- out / baseline
+
+  }
+
+  # reformat output? (e.g. convert to data.frame, add date info, add column names)
+  out <- format_output(out, target, resolution)
+
+  # return output
+  out
+
+}
+
+# internal function to identify which data sit within a specified subset
+identify_subset <- function(date, settings) {
+
+  # reduce date to range defined in `subset`, but keep track of lag
+  subset <- parse_date_time(settings$subset, order = c("y"))
+  subset <- subset - settings$lag
+
+  # return
+  year(date) %in% year(subset)
+
+}
+
+# internal function to define level at which metric is calculated
+define_target <- function(date, settings) {
 
   # deal with lag
   date <- date - settings$lag
 
   # return minimal target based on type
-  switch(settings$type,
-         "survey" = unique(floor_date(date, unit = "years")),
-         "weekly" = unique(floor_date(date, unit = "weeks")),
-         "monthly" = unique(floor_date(date, unit = "months")),
-         "annual" = unique(floor_date(date, unit = "years")),
-         "baseline" = dmy("01012050"))
+  target <- unique(floor_date(date, unit = settings$unit))
+
+  # return output, dropping first year for survey calculations
+  switch(
+    settings$type,
+    "survey" = target[-1],
+    target
+  )
 
 }
 
+# internal function to parse seasons and convert to correct months
 match_season <- function(season, relative = FALSE) {
 
   print_name <- "season"
@@ -43,49 +109,85 @@ match_season <- function(season, relative = FALSE) {
     "winter" = 6:8,
     "spring" = 9:11,
     "spawning" = 10:12,
-    stop("You've set ", print_name,
-         " = '", season,
-         "' but ", print_name,
-         " must be one of full_year, antecedent, summer, winter, spring, or spawning.",
-         call. = FALSE)
+    stop(
+      "You've set ", print_name, " = '", season, "' but ", print_name,
+      " must be one of full_year, antecedent, summer, winter, spring, or spawning.",
+      call. = FALSE
+    )
   )
 
 }
 
-survey <- function(season, lag = 0, subset = NULL) {
+# define details of survey-level metric calculations
+survey <- function(season = 1:12, lag = 0, subset = NULL) {
 
   if (is.character(season))
     season <- match_season(season)
 
-  list(type = "survey", season = season, lag = years(lag), subset = subset)
+  # user can pass a different period (e.g. months) but default to years
+  if (!is.period(lag))
+    lag <- years(lag)
+
+  # if subset is required, don't cut off previous year's flow because it's needed
+  if (!is.null(subset))
+    subset[1] <- subset[1] - 1L
+
+  # return
+  list(type = "survey", season = season, lag = lag, subset = subset, unit = "years")
 
 }
 
+# define details of weekly metric calculations
 weekly <- function(lag = 0, subset = NULL) {
-  list(type = "weekly", lag = weeks(lag), subset = subset, unit = "weeks")
+
+  # user can pass a different period (e.g. months) but default to weeks
+  if (!is.period(lag))
+    lag <- weeks(lag)
+
+  # return
+  list(type = "weekly", lag = lag, subset = subset, unit = "weeks")
+
 }
 
+# define details of monthly metric calculations
 monthly <- function(lag = 0, subset = NULL) {
-  list(type = "monthly", lag = months(lag), subset = subset, unit = "weeks")
+
+  # user can pass a different period (e.g. weeks) but default to months
+  if (!is.period(lag))
+    lag <- months(lag)
+
+  # return
+  list(type = "monthly", lag = lag, subset = subset, unit = "months")
+
 }
 
+# define details of annual metric calculations
 annual <- function(lag = 0, subset = NULL) {
-  list(type = "annual", lag = years(lag), subset = subset, unit = "weeks")
+
+  # user can pass a different period (e.g. months) but default to years
+  if (!is.period(lag))
+    lag <- years(lag)
+
+  # return
+  list(type = "annual", lag = lag, subset = subset, unit = "years")
+
 }
 
-baseline <- function(lag = 0, subset = NULL) {
-  list(type = "baseline", unit = years(10000))
+# define details of baseline metric calculations
+baseline <- function(season = 1:12, subset = NULL) {
+  list(type = "baseline", season = season, lag = years(0), subset = subset, unit = years(10000))
 }
 
+# internal function to identify which observations fall within a given season and target
 define_season <- function(target, date, season) {
 
   spanning <- TRUE
 
-  if (all(season) <= 12) {
+  if (all(season <= 12)) {
     out <- year(date) == (year(target) - 1L) & month(date) %in% season
     spanning <- FALSE
   }
-  if (all(season) > 12) {
+  if (all(season > 12)) {
     out <- year(date) == year(target) & month(date) %in% (season - 12L)
     spanning <- FALSE
   }
@@ -98,142 +200,43 @@ define_season <- function(target, date, season) {
 
 }
 
-define_interval(target, date, settings) {
+# internal function to define observations in each target
+define_interval <- function(target, date, settings) {
 
   switch(settings$type,
          "survey" = define_season(target, date, settings$season),
+         "baseline" = month(date) %in% settings$season,
          floor_date(date, unit = settings$unit) == target)
 
 }
 
-calculate(value, date, resolution, fun, rescale = NULL, ...) {
+# internal function to return an output data.frame with appropriate dates
+format_output <- function(x, target, resolution) {
 
-  # define minimal target, accounting for possible subset and lag
-  targets <- define_target(date, resolution)
-
-  # work out which dates line up with intervals defined by resolution
-  intervals <- lapply(targets, define_interval, date = date, settings = resolution)
-
-  # calculate `fun` for each survey year
-  out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
-
-  # check whether we need to rescale the output
-  if (!is.null(rescale)) {
-
-    # if so, set some defaults
-    rescale_list <- list(
-      subset = subset,
-      fun = median,
-      season = 1:12
-    )
-
-    # and overwrite these if specified
-    rescale_list[names(rescale)]  <- rescale
-
-    # now calculate the target for baseline calculation
-    rescale_target <- define_target(settings = baseline(subset = rescale_list$subset))
-    rescale_interval <- define_interval(rescale_target, date = date, settings = baseline(subset = rescale_list$subset))
-
-    # copy rescale list but remove elements that `fun` can't process
-    rescale_copy <- rescale_list
-    rescale_copy$subset <- NULL
-    rescale_copy$season <- NULL
-    rescale_copy$fun <- NULL
-
-    # now calculate `fun` for what's left
-    baseline <- do.call(rescale_list$fun, c(value[rescale_interval], rescale_copy))
-
-    # and rescale output
-    out <- out / baseline
-
-  }
-
-  # reformat output? (e.g. convert to data.frame, add date info, add column names)
-
-  # return output
-  out
-
-}
-
-# vectorised function to calculate flow metrics for multiple survey years
-calc_metric <- function(value, dates,
-                        survey_years,
-                        season,
-                        fun = median,
-                        lag = 0,
-                        aggregate_years = FALSE,
-                        relative_to = NULL,
-                        relative_season = NULL,
-                        relative_fun = median,
-                        ...) {
-
-  # is the season valid?
-  check_season(season, relative = FALSE)
-
-  # do we need to aggregate values over multiple years?
-  if (aggregate_years) {
-    aggregate_years <- survey_years
-    survey_years <- 2050
-  } else {
-    aggregate_years <- NULL
-  }
-
-  # account for the time lag
-  survey_years <- survey_years - lag
-
-  # work out which dates line up with each survey year and the chosen season
-  targets <- lapply(survey_years, define_interval, dates = dates, season = season, aggregate_years = aggregate_years)
-
-  # calculate `fun` for each survey year
-  out <- sapply(targets, function(idx, ...) fun(value[idx], ...), ...)
-
-  # do we want to standardise relative to some years?
-  if (!is.null(relative_to)) {
-
-    # if so, need to specify how to calculate standardisation
-    if (is.null(relative_fun))
-      relative_fun <- fun
-
-    # is the season defined? If not, default to all months in all years
-    if (is.null(relative_season)) {
-      relative_season <- "full_year"
-    }
-
-    # check season is OK
-    check_season(relative_season, relative = TRUE)
-
-    # which years do we want to standardise against?
-    relative_target <- define_interval(2050, dates, season = relative_season, aggregate_years = relative_to)
-
-    # calculate value in these years
-    longterm <- relative_fun(value[relative_target], ...)
-
-    # and divide metric by this value for all survey years
-    out <- out / longterm
-
-  }
-
-  # flatten to single value if spanning all years
-  if (length(grep("all", season)) > 0)
-    out <- unique(out)
+  # weekly and monthly metrics need more resolved dates
+  date <- switch(
+    resolution$type,
+    "weekly" = target,
+    "monthly" = target,
+    year(target)
+  )
 
   # return
-  out
+  data.frame(date = date, metric = x)
 
 }
 
-# function to calculate low flow days
+# function to calculate number of days below a threshold
 days_below <- function(x, threshold, ...) {
   sum(x < threshold, ...)
 }
 
-# function to calculate high flow days
+# function to calculate number of days about a threshold
 days_above <- function(x, threshold, ...) {
   sum(x > threshold, ...)
 }
 
-# internal functon to calculate maximum ratio or difference
-#   used in `rolling_range()`
+# internal functon to calculate maximum ratio or difference (used in `rolling_range()`)
 get_range <- function(x, type = "ratio") {
 
   out <- NA
