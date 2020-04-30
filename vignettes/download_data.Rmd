@@ -12,17 +12,6 @@ vignette: >
 ```{r setup, include = FALSE}
 # display code by default
 knitr::opts_chunk$set(echo = TRUE)
-
-# load some packages (won't need first 3 once package loads correctly)
-library(httr)
-library(jsonlite)
-library(lubridate)
-library(dplyr)
-library(tidyr)
-
-# source some scripts (won't need once package loads correctly)
-source("R/db_queries.R")
-source("R/fetch_data.R")
 ```
 
 ## First steps: accessing flow data
@@ -30,6 +19,9 @@ source("R/fetch_data.R")
 The first challenge is to access streamflow data. The `aae.data` package (hopefully) makes this easy. It links directly to the Vicwater/WMIS database to download flow from any gauge for any years. Getting data from R looks a bit like this:
 
 ```{r flow-download}
+# load the aae.data package 
+library(aae.data)
+
 # Download data for five sites, based on their gauge numbers:
 #   - 405232 (Goulburn @ McCoys Bridge)
 #   - 406201 (Campaspe @ Barnadown)

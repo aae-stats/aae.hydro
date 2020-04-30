@@ -12,18 +12,15 @@ vignette: >
 ```{r setup, include = FALSE}
 # display code by default
 knitr::opts_chunk$set(echo = TRUE)
+```
 
-# load some packages (won't need first 3 once package loads correctly)
-library(httr)
-library(jsonlite)
-library(lubridate)
-library(dplyr)
-library(tidyr)
+## Getting started
 
-# source some scripts (won't need once package loads correctly)
-source("R/db_queries.R")
-source("R/fetch_data.R")
-source("R/calculate.R")
+Start by loading the `aae.data` package and downloading some data to work with.
+
+```{r getting-started}
+# load the aae.data package
+library(aae.data)
 
 # get some data to work with in the vignette
 flow_data <- fetch_data(
