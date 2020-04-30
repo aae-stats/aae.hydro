@@ -9,6 +9,7 @@ vignette: >
   %\VignetteIndexEntry{Getting started with aae.data}
   %\usepackage[utf8]{inputenc}
 ---
+
 ```{r setup, include = FALSE}
 # display code by default
 knitr::opts_chunk$set(echo = TRUE)

@@ -8,6 +8,7 @@ vignette: >
   %\VignetteIndexEntry{Calculating metrics from streamflow data}
   %\usepackage[utf8]{inputenc}
 ---
+
 ```{r setup, include = FALSE}
 # display code by default
 knitr::opts_chunk$set(echo = TRUE)
