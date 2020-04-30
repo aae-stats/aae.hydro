@@ -1,36 +1,250 @@
-# add docs
-# setup namespace through roxygen
-# setup examples
-# setup basic tests
-# add rigorous tests, download some known values to test against
-# add separate script to pull out flow metrics (work out how to handle dates)
-# maybe add option to pull flow metrics directly (by calling fetch_flow internally)?
+#' @name fetch_data
+#' @title Download data from Victorian WMIS
+#' @description Download data from the Victorian Water Measurement Information System (WMIS)
+#'   for one or more variables at one or more sites.
+NULL
 
-## variable notes:
-# -add check that discharge is not equal to depth
+#' @rdname fetch_data
+#'
+#' @export
+#'
+#' @param sites a character or numeric vector of site codes (gauge numbers)
+#' @param start start date for downloaded data. Date format is flexible but
+#'    for most reliable results use yyyy-mm-dd
+#' @param end end date for downloaded data. Date format is flexible but
+#'    for most reliable results use yyyy-mm-dd
+#' @param variables a character or numeric vector of variable names or codes.
+#'    Many variations are accounted for (e.g. streamflow, flow, discharge).
+#'    WMIS variable codes will work.
+#' @param include_missing a \code{logical} defining whether to pad output data to include
+#'    dates where data are missing
+#' @param options a \code{list} specifying one of four advanced options:
+#'    - the interval type (defaults to "daily") for calculation of downloaded values
+#'    - the data_type (defaults to "mean") for aggregation of downloaded values
+#'    - the multiplier (defaults to "1") used to expand or shrink the requested interval
+#'    - varfrom and varto (default to NULL) to specify explicit variable conversions with
+#'      WMIS variable codes. Both varfrom and varto must be provided
+#' @param data_source database from which data are downloaded. Defaults to "A", which
+#'    covers most cases. The \code{list_datasources} function will list all available
+#'    data_sources for a given site
+#'
+#' @details Streamflow and related data (e.g. temperature) are recorded as instantaneous values,
+#'    so must be aggregated prior to download. The default settings specify daily means, but
+#'    other options are available with the \code{options} parameter.
+#'
+#'    Dates and variable names are interpreted loosely. Dates will recognise any of the following
+#'    formats: \code{"ymd"}, \code{"dmy"}, \code{"y"}, \code{"ymd_HMS"}, and \code{"ymd_HM"}.
+#'    Variables will ignore case and remove all spaces and underscores. Once tidied, any variable name
+#'    containing any of the following will be recognised: \code{"flow"}, \code{"discharge"}, \code{"depth"},
+#'    \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
+#'
+#' @return a \code{data.frame} containing the downloaded flow data and relevant identifiers
+#'   for each observation.
+#'
+#' @examples
+#' \dontrun{
+#'
+#' # grab data for three variables at three sites
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth")
+#' )
+#'
+#' # try a different date range
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "1991-01-01",
+#'   end = "1993-04-21",
+#'   variables = c("flow", "temp", "depth")
+#' )
+#'
+#' # or a different date format
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "01-01-1994",
+#'   end = "1996",
+#'   variables = c("flow", "temp", "depth")
+#' )
+#'
+#' # repeat, but fill gaps with placeholders
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth"),
+#'   include_missing = TRUE
+#' )
+#'
+#' # check for data from the telemetry data source
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth"),
+#'   data_source = "TELEM"
+#' )
+#'
+#' # advanced options: return weekly median values
+#' #   rather than daily mean values
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth"),
+#'   options = list(
+#'     interval = "weekly",
+#'     data_type = "median"
+#'   )
+#' )
+#'
+#' # advanced options: specify variables explicitly
+#' #   by WMIS codes
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth"),
+#'   options = list(
+#'     varfrom = "100.00",
+#'     varto = "141.00"
+#'   )
+#' )
+#'
+#' }
+#'
+fetch_data <- function(sites, start, end, variables,
+                       include_missing = FALSE,
+                       options = list(),
+                       data_source = "A") {
 
-# automatically check all data sources? Somehow resolve conflicts with queried data?
-#   - this is clunkiest part right now -- just goes with first match, which might not have
-#       greatest coverage. Will be fine if user can use list_variables and specify varfrom/varto directly.
-#   - biggest issue is when a short true streamflow time series exists, which will overwrite a longer
-#       time series of streamflow converted from depth.
-# could warn for partial matches (in check_available or elsewhere)?
-#   - separates out data sources, so this would only be an issue if a single data source has a short
-#       true streamflow time series as well as a long depth time series.
-#   - alternative to warning: check length of overlap and take longest?
-#   - really need a function to resolve conflicts in discharge/depth data.
-#   - best approach is to take both, not longest. So grab all discharge data and all converted depth data,
-#       filter out overlap (prioritising true discharge data) -- this would reduce number of queries too.
+  # set default options
+  opt <- list(
+    interval = "daily",
+    data_type = "mean",
+    multiplier = "1",
+    varfrom = NULL,
+    varto = NULL
+  )
+  opt[names(options)] <- options
 
-# shift padding for missing data from fetch_flow function to format_JSON_flow?
-#  Have added check_missing function but it needs testing. Check for missing data seems wrong (length(list) == 0).
-#    -- might break on edge cases (e.g. variable there for one datasource but not another)
+  # are these options?
+  opt <- check_options(opt)
 
-# notes to keep
-## data_type is operation on data (observations are instantaneous)
-## multiplier gives an interval multiplier, e.g., 2 means interval = 2 * interval
-## need informative errors, especially when data are partially available or when qc codes are ambiguous
+  # reformat dates
+  dates <- parse_dates(start, end)
 
+  # get variables if varfrom/varto/var_list not provided
+  if (is.null(opt$varfrom) | is.null(opt$varto)) {
+    vars <- parse_variables(variables, sites, dates$start, dates$end, data_source)
+  } else {
+    vars <- list(varfrom = opt$varfrom, varto = opt$varto)
+  }
+
+  # check if we can use var_list to vectorise the query
+  var_list <- NULL
+  if (all(vars$varfrom == vars$varto))
+    var_list <- paste0(vars$varto, collapse = ",")
+
+  # if we can just run all variables and sites at once
+  if (!is.null(var_list)) {
+
+    # send off a query
+    response <- query_database(
+      address = "http://data.water.vic.gov.au/cgi/webservice.pl",
+      sites = paste0(sites, collapse = ","),
+      start = dates$start,
+      end = dates$end,
+      var_list = var_list,
+      options = opt,
+      data_source = data_source,
+    )
+
+    # extract and reformat the output
+    output <- format_JSON_flow(response)
+
+  } else {
+
+    output <- vector("list", length = length(vars$varfrom))
+
+    # we need to do it separately for each variable
+    for (i in seq_along(vars$varfrom)) {
+
+      # send query
+      response <- query_database(
+        address = "http://data.water.vic.gov.au/cgi/webservice.pl",
+        sites = paste0(sites, collapse = ","),
+        start = dates$start,
+        end = dates$end,
+        varfrom = vars$varfrom[i],
+        varto = vars$varto[i],
+        options = opt,
+        data_source = data_source
+      )
+
+      # format output so it's readable
+      tmp <- format_JSON_flow(response)
+
+      # if there's no output, add a placeholder so we know that variable is missing
+      if (is.null(tmp)) {
+        output[[i]] <- fill_missing(dates, vars$varfrom[i], vars$varto[i], sites)
+      } else {
+        output[[i]] <- tmp
+      }
+
+    }
+
+    # make sure all list elements have the same columns for quality_reference
+    output <- standardise_columns(output)
+
+    # flatten this into a single data.frame
+    output <- do.call(rbind, output)
+
+  }
+
+  # expand around missing observations
+  if (include_missing)
+    output <- expand_missing(output, dates$start, dates$end)
+
+  # check if vicwater has included missing data with a value (usually 0.0)
+  missing_with_value <- output$quality_code == 255 & !is.na(output$value)
+  if (any(missing_with_value)) {
+
+    # remove these if !include_missing
+    if (!include_missing) {
+
+      output <- output[!missing_with_value, ]
+
+    } else {
+
+      # make output columns slightly more informative
+      output$value[missing_with_value] <- NA
+      output$quality_reference_255[missing_with_value] <- "Missing data"
+
+    }
+
+
+  }
+
+  # standardise column classes
+  output$value <- as.numeric(output$value)
+
+  # and clean up variable names
+  output$variable_name <- gsub("\\(|\\)|/", "", output$variable_name)
+  output$variable_name <- gsub(" ", "_", output$variable_name)
+  output$variable_name <- gsub("\u00B0C", "c", output$variable_name)
+  output$variable_name <- tolower(output$variable_name)
+
+
+  # and return
+  output
+
+}
+
+#'
+#' @importFrom lubridate parse_date_time
+#'
 # turn dates from a range of formats into a consistent format for JSON calls
 parse_dates <- function(start, end) {
 
@@ -57,27 +271,30 @@ parse_dates <- function(start, end) {
 }
 
 # convert variable names to codes used in vicwater database
-parse_variables <- function(variables, sites, start, end, settings) {
+parse_variables <- function(variables, sites, start, end, data_source) {
 
   # standardise names as much as possible
   variables <- gsub(" |_", "", variables)
   variables <- tolower(variables)
   variables[grep("flow", variables)] <- "discharge"
-  variables[grep("depth", variables)] <- "depth"
+  variables[grep("depth|height", variables)] <- "depth"
   variables[grep("temp", variables)] <- "temperature"
   variables[grep("cond", variables)] <- "conductivity"
   variables[grep("ox|do", variables)] <- "dissolvedoxygen"
   variables[grep("turb", variables)] <- "turbidity"
 
+  # we only need to download each variable once
+  variables <- unique(variables)
+
   # create a vector with codes relevant to each variable
-  var_list <- rep(NA, length(variables))
+  varfrom <- rep(NA, length(variables))
   for (i in seq_along(variables)) {
 
     # pull out a tmp var to play with
     var_tmp <- variables[i]
 
     # switch out for database variable codes
-    var_list[i] <- switch(
+    varfrom[i] <- switch(
       var_tmp,
       "depth" = "100.00",
       "discharge" = "141.00",
@@ -88,105 +305,116 @@ parse_variables <- function(variables, sites, start, end, settings) {
       var_tmp)
   }
 
-  # create vectors of var_from and var_to to be cycled over if making multiple_queries
-  nsites <- length(sites)
-  nvar <- length(var_list)
-  ndatasource <- length(settings$data_source)
-  varfrom <- array(rep(var_list, nsites * ndatasource), dim = c(nvar, nsites, ndatasource))
-  varfrom <- aperm(varfrom, perm = c(2, 1, 3))
+  # create vectors of varfrom and varto to be cycled over if making multiple queries
   varto <- varfrom
+  if ("141.00" %in% varfrom) {
+    varfrom <- c(varfrom, "100.00", "141.50")
+    varto <- c(varto, "141.00", "141.50")
+    variables <- c(variables, rep("discharge", 2))
+  }
 
   # check whether variables exist in data
-  available <- check_available(sites, start, end, var_list, settings)
+  available <- check_available(sites, start, end, varfrom, data_source)
+  partial <- available$partial
+  complete <- available$complete
 
-  # it's all good if everything exists, can flatten to one query for all sites and variables
-  multiple_sites <- FALSE
-  multiple_vars <- FALSE
-
-
-  ### ADD STEP HERE: resolve conflicts in streamflow data
-  # 1. if 141.00 is partially available, do we need multiple requests for 100.00-141.00 and 141.00-141.00?
-  # 2. check overlap of both
-  # 3. if required, add column to varfrom/varto; skip following checks? (should skip anyway because 141.00 will be available)
-
-  ###
-
-  # otherwise we need to be more careful, first checking flow is available and then
-  #   working out whether other vars are available
-  if (!all(available)) {
-
-    # we only care about flow in this step; skip otherwise
-    if (any(varfrom[!available] == "141.00")) {
-
-      # work out where the flow request sits in the list of variables
-      col_id <- varfrom[1, , 1] == "141.00"
-
-      # subset varfrom to the cols/rows/slices that we care about (missing data, flow request)
-      idx <- varfrom == "141.00" & !available
-
-      # set varfrom to depth data in these cases (won't hurt, might help)
-      varfrom[idx] <- "100.00"
-
-      # check if depth data are available at that combo
-      available_update <- check_available(sites, start, end, "100.00", settings)
-
-      # update availability just for this column and unavailable variables
-      #   (check_available returns all rows and slices for a given column, including
-      #    previously available rows/slices)
-      available <- available_update[!available[, col_id, ]]
-
-    }
-
-    # default in this expanded case is to expand over sites
-    multiple_sites <- TRUE
-
-    # but can flatten sites if all rows of varfrom/varto are identical
-    varfrom_equal <- all(apply(varfrom, c(2, 3), function(x) length(unique(x)) == 1))
-    varto_equal <- all(apply(varto, c(2, 3), function(x) length(unique(x)) == 1))
-    if (varfrom_equal & varto_equal) {
-      varfrom <- varfrom[1, , , drop = FALSE]
-      varto <- varto[1, , , drop = FALSE]
-      multiple_sites <- FALSE
-    }
-
-    # can use var_list if varfrom and varto are equal
-    if (!all(varfrom == varto))
-      multiple_vars <- TRUE
-
-  }
-
-  # if anything is missing, print it out to the screen
-  missing <- c(!available)
-  missing_sites <- rep(sites, times = nvar * ndatasource)[missing]
-  missing_vars <- rep(rep(variables, each = nsites), times = ndatasource)[missing]
-  missing_datasources <- rep(rep(settings$data_source, each = nsites), each = nvar)[missing]
-  missing_details <- paste(missing_sites, missing_vars, sep = ": ")
-  missing_datasource_formatted <- paste0("(data source: ", missing_datasources, ")")
-  missing_details <- paste(missing_details, missing_datasource_formatted, sep = " ")
+  # remove excess variables if not available
+  missing <- apply(partial, 2, function(x) all(!x))
   if (any(missing)) {
-    warning("No data for the following sites, variables and data sources: ",
-            paste(missing_details, collapse = ", "),
-            ". Use `list_variables(c(",
-            paste(sites, collapse = ", "),
-            "))` to work out when and where data are available.",
-            call. = FALSE)
+    varfrom <- varfrom[!missing]
+    varto <- varto[!missing]
+    variables <- variables[!missing]
+    partial <- partial[, !missing, drop = FALSE]
+    complete <- complete[, !missing, drop = FALSE]
   }
 
-  # collapse var_list into a single string to pass to the JSON call
-  var_list <- paste0(var_list, collapse = ",")
-
-  # turn off var_list if we need to run multiple queries
-  if (multiple_vars)
-    var_list <- NULL
+  # if anything is missing, print out a message
+  check <- partial + complete
+  if (any(!complete) | any(!partial))
+    send_message(check, sites, variables)
 
   # return
-  list(varfrom = varfrom, varto = varto, var_list = var_list,
-       multiple_sites = multiple_sites, multiple_vars = multiple_vars)
+  list(varfrom = varfrom, varto = varto)
 
 }
 
-# check that the data aggregation settings are OK
-check_aggregation <- function(x) {
+# create an informative warning about missing or partial data
+send_message <- function(check, sites, vars) {
+
+  # create a matrix of sites/vars to match dims of check
+  sites_expanded <- matrix(rep(sites, times = length(vars)), ncol = length(vars))
+  vars_expanded <- matrix(rep(vars, each = length(sites)), ncol = length(vars))
+
+  # check is 0 if both missing (!complete & !partial), 1 if partial (!complete & partial)
+  #   and 2 if complete data are available (complete & partial)
+  missing_sites <- sites_expanded[check == 0]
+  missing_vars <- vars_expanded[check == 0]
+  partial_sites <- sites_expanded[check == 1]
+  partial_vars <- vars_expanded[check == 1]
+
+  # make up a vector of missing site/var combos
+  missing <- paste(missing_sites, missing_vars, sep = ":")
+  partial <- paste(partial_sites, partial_vars, sep = ":")
+
+  # just want unique combos, no need to print the same thing twice
+  missing <- unique(missing)
+  partial <- unique(partial)
+
+  # partials will not be complete by definition, just return the
+  #   true partial variables
+  partial <- partial[!partial %in% missing]
+
+  # format a neat warning
+  missing_msg <- special_paste(missing)
+  partial_msg <- special_paste(partial)
+
+  # print message if anything is incomplete
+  message(
+    "No data for the following sites and variables:\n",
+    missing_msg,
+    "\nIncomplete data for the following sites and variables:\n",
+    partial_msg,
+    "\nUse list_variables(c(", paste0(unique(c(missing_sites, partial_sites)), collapse = ", "),
+    ")) to check data availability."
+  )
+
+}
+
+# paste together multiple objects with commas and ands in the right place
+special_paste <- function(obj) {
+
+  split_obj <- strsplit(obj, ":")
+  site_list <- sapply(split_obj, function(x) x[1])
+  var_list <- sapply(split_obj, function(x) x[2])
+
+  unique_sites <- unique(site_list)
+  var_by_site <- match(site_list, unique_sites)
+
+  out <- ""
+  for (i in seq_along(unique_sites)) {
+
+    var_tmp <- var_list[var_by_site == i]
+    ntmp <- length(var_tmp)
+
+    if (ntmp == 1)
+      var_tmp <- var_tmp
+
+    if (ntmp == 2)
+      var_tmp <- paste0(var_tmp, collapse = " and ")
+
+    if (ntmp > 2)
+      var_tmp <- paste0(paste0(var_tmp[seq_len(ntmp - 1)], collapse = ", "), " and ", var_tmp[ntmp])
+
+    out <- paste0(out, paste(unique_sites[i], var_tmp, sep = ": "), "\n")
+
+  }
+
+  out
+
+}
+
+# check that the options are OK
+check_options <- function(x) {
 
   # fix some common name mistakes
   x$interval <- switch(
@@ -247,29 +475,31 @@ standardise_columns <- function(out) {
 
 }
 
-check_missing <- function(output_list, id, dates, varfrom, varto, site) {
+#'
+#' @importFrom lubridate ymd_hms
+#'
+# create a placeholder to catch missing variables
+fill_missing <- function(dates, varfrom, varto, sites) {
 
-  ## CHECK: should possibly be if (length(out) < ndatasource)?
-  if (length(output_list) == 0) {
-    out <- data.frame(value = 0.0,
-                              date = dates$start,
-                              quality_code = 255,
-                              date_formatted = ymd_hms(dates$start),
-                              site_name = NA,
-                              site_code = site,
-                              variable_name = NA,
-                              variable_code = varto,
-                              varfrom_code = varfrom,
-                              units = NA,
-                              quality_reference_255 = "Missing data")
-  } else {
-    out <- output_list[[id]]
-  }
-
-  out
+  data.frame(
+    value = 0.0,
+    date = dates$start,
+    quality_code = 255,
+    date_formatted = ymd_hms(dates$start),
+    site_name = NA,
+    site_code = sites,
+    variable_name = NA,
+    variable_code = varto,
+    varfrom_code = varfrom,
+    units = NA,
+    quality_reference_255 = "Missing data"
+  )
 
 }
 
+#'
+#' @importFrom lubridate ymd_hms int_length int_diff
+#'
 # expand data set to include rows for unavailable dates
 expand_missing <- function(data, start, end) {
 
@@ -282,7 +512,7 @@ expand_missing <- function(data, start, end) {
     unlist(
       tapply(
         data$date_formatted,
-        list(data$variable_code, data$site_code, data$datasource),
+        list(data$variable_code, data$site_code),
         function(x) int_length(int_diff(x))
       )
     )
@@ -347,239 +577,36 @@ expand_missing <- function(data, start, end) {
   }
 
   # finalise by sorting data by date within variable
-  data <- data[order(data$variable_code, data$site_code, data$datasource, data$date_formatted), ]
+  data <- data[order(data$variable_code, data$site_code, data$date_formatted), ]
 
   # return
   data
 
 }
 
-# grab vicwater data on one or more variables for a site or set of sites
-fetch_data <- function(sites, start, end, variables,
-                       include_missing = FALSE,
-                       aggregation = list(),
-                       settings = list(),
-                       options = list()) {
-
-  # set default aggregation settings
-  aggr_list <- list(
-    interval = "daily",
-    data_type = "mean",
-    multiplier = "1"
-  )
-  aggr_list[names(aggregation)] <- aggregation
-
-  # are these aggregation settings ok?
-  aggr_list <- check_aggregation(aggr_list)
-
-  # default data settings
-  sett_list <- list(
-    data_source = "A",
-    return_type = "hash"
-  )
-  sett_list[names(settings)] <- settings
-
-  # set list of variable options
-  parsed_vars <- list(
-    varfrom = NULL,
-    varto = NULL,
-    var_list = NULL,
-    multiple_sites = FALSE,
-    multiple_vars = FALSE
-  )
-  parsed_vars[names(options)] <- options
-
-  # reformat dates
-  parsed_dates <- parse_dates(start, end)
-
-  # get variables if varfrom/varto/var_list not provided
-  if (!is.null(parsed_vars$varfrom) & !is.null(parsed_vars$varto) | !is.null(parsed_vars$var_list)) {
-    if (is.null(var_list))
-      parsed_vars$multiple_vars <- TRUE
-  } else {
-    parsed_vars <- parse_variables(variables, sites, parsed_dates$start, parsed_dates$end, sett_list)
-  }
-
-  # if we can just run all variables and sites at once
-  if (!parsed_vars$multiple_sites & !parsed_vars$multiple_vars) {
-
-    # run through all requested data sources
-    output <- vector("list", length = length(sett_list$data_source))
-    for (i in seq_along(sett_list$data_source)) {
-
-      # send off a query
-      response <- query_database(
-        address = "http://data.water.vic.gov.au/cgi/webservice.pl",
-        sites = paste0(sites, collapse = ","),
-        start = parsed_dates$start,
-        end = parsed_dates$end,
-        var_list = parsed_vars$var_list,
-        aggr_list = aggr_list,
-        data_source = sett_list$data_source[j],
-      )
-
-      # extract and reformat the output
-      output[[i]] <- format_JSON_flow(response)
-
-      # add datasource identifier to data set
-      output[[i]]$datasource <- sett_list$data_source[i]
-
-    }
-
-    # collapse list output into a matrix
-    output <- do.call(rbind, output)
-
-  } else {
-
-    if (!parsed_vars$multiple_sites) {
-
-      # initialise an empty list object to store outputs
-      output <- vector("list", length = length(parsed_vars$varfrom))
-
-      # we need to do it separately for each variable
-      for (i in seq_along(parsed_vars$varfrom)) {
-
-        # run through all requested data sources
-        tmp <- vector("list", length = length(sett_list$data_source))
-        for (j in seq_along(sett_list$data_source)) {
-
-          # send off a query
-          response <- query_database(
-            address = "http://data.water.vic.gov.au/cgi/webservice.pl",
-            sites = paste0(sites, collapse = ","),
-            start = parsed_dates$start,
-            end = parsed_dates$end,
-            varfrom = parsed_vars$varfrom[1, i, j],
-            varto = parsed_vars$varto[1, i, j],
-            aggr_list = aggr_list,
-            data_source = sett_list$data_source[j],
-          )
-
-          # extract and reformat the output
-          tmp[[j]] <- format_JSON_flow(response)
-
-          # fill with minimal info if variable is missing
-          tmp[[j]] <- check_missing(tmp, j,
-                                    parsed_dates,
-                                    parsed_vars$varfrom[1, i, j],
-                                    parsed_vars$varto[1, i, j],
-                                    sites)
-
-        }
-
-        # add datasource identifier to data set
-        tmp[[j]]$datasource <- sett_list$data_source[j]
-
-        # make sure all tmp lists have same column headings for quality reference
-        tmp <- standardise_columns(tmp)
-
-        # can now flatten into a single matrix
-        output[[i]] <- do.call(rbind, tmp)
-
-      }
-
-      # make sure all list elements have the same columns for quality_reference
-      output <- standardise_columns(output)
-
-      # flatten this into a single data.frame
-      output <- do.call(rbind, output)
-
-    } else {
-
-      # initialise an empty list object to store outputs
-      output <- vector("list", length = nrow(parsed_vars$varfrom))
-
-      # we need to do it separately for each variable
-      for (i in seq_len(nrow(parsed_vars$varfrom))) {
-
-        # run through all requested data sources
-        tmp <- vector("list", length = ncol(parsed_vars$varfrom))
-
-        for (j in seq_len(ncol(parsed_vars$varfrom))) {
-
-          tmp[[j]] <- vector("list", length = length(sett_list$data_source))
-          for (k in seq_along(sett_list$data_source)) {
-
-            # send off a query
-            response <- query_database(
-              address = "http://data.water.vic.gov.au/cgi/webservice.pl",
-              sites = sites[i],
-              start = parsed_dates$start,
-              end = parsed_dates$end,
-              varfrom = parsed_vars$varfrom[i, j, k],
-              varto = parsed_vars$varto[i, j, k],
-              aggr_list = aggr_list,
-              data_source = sett_list$data_source[k],
-            )
-
-            # extract and reformat the output
-            tmp[[j]][[k]] <- format_JSON_flow(response)
-
-            # fill with minimal info if variable is missing
-            tmp[[j]][[k]] <- check_missing(tmp[[j]], k,
-                                           parsed_dates,
-                                           parsed_vars$varfrom[i, j, k],
-                                           parsed_vars$varto[i, j, k],
-                                           sites[i])
-
-          }
-
-          # add datasource identifier to data set
-          tmp[[j]][[k]]$datasource <- sett_list$data_source[j]
-
-          # make sure all tmp lists have same column headings for quality reference
-          tmp[[j]] <- standardise_columns(tmp[[j]])
-
-          # combine all datasources for variable j
-          tmp[[j]] <- do.call(rbind, tmp[[j]])
-
-        }
-
-        # make sure all list elements have the same columns for quality_reference
-        tmp <- standardise_columns(tmp)
-
-        # can now flatten into a single matrix for site i
-        output[[i]] <- do.call(rbind, tmp)
-
-      }
-
-      # make sure all list elements have the same columns for quality_reference
-      output <- standardise_columns(output)
-
-      # flatten this into a single data.frame
-      output <- do.call(rbind, output)
-
-    }
-
-  }
-
-  # expand around missing observations
-  if (include_missing)
-    output <- expand_missing(output, parsed_dates$start, parsed_dates$end)
-
-  # check if vicwater has included missing data with a value (usually 0.0)
-  missing_with_value <- output$quality_code == 255 & !is.na(output$value)
-  if (any(missing_with_value)) {
-
-    # make output columns slightly more informative in this case
-    output$value[missing_with_value] <- NA
-    output$quality_reference_255[missing_with_value] <- "Missing data"
-
-    # remove these t if !include_missing
-    if (!include_missing)
-      output <- output[!missing_with_value, ]
-
-  }
-
-  #### TO COMPLETE
-  # standardise column classes (check others)
-  output$value <- as.numeric(output$value)
-
-  # and return
-  output
-
-}
-
+#' @rdname fetch_data
+#'
+#' @export
+#'
+#' @param data a \code{data.frame} returned by \code{fetch_data}
+#'
+#' @details tabulates data by QC code, with descriptions of each QC code.
+#'
+#' @examples
+#' \dontrun{
+#'
+#' # download some flow data
+#' flow_data <- fetch_data(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "1991-01-01",
+#'   end = "1993-04-21",
+#'   variables = c("flow", "temp", "depth")
+#' )
+#'
+#' # and print a table of QC codes to the console
+#' check_quality(flow_data)
+#'
+#' }
 # tabulate date by qc codes
 check_quality <- function(data) {
 
@@ -589,29 +616,43 @@ check_quality <- function(data) {
     "2" = "Good quality, minimal editing required. Drift correction",
     "3" = "Used only by TELEM data",
     "10" = "Data transposed from recorder chart",
+    "11" = "Raw data used for operational purposes. Not validated",
     "15" = "Minor editing. >+/-10mm drift correction",
     "50" = "Medium editing >+/-30mm drift correction, significant single spike removal etc.",
+    "76" = "Reliable non-linear interpolation using other data sources, not a correlation",
     "82" = "Linear interpolation across gap in records (< 0.5 day)",
     "100" = "Irregular data, beyond QC=50 or unexplained",
     "104" = "Records manually estimated",
     "149" = "Rating extrapolated witin 1.5x max Qm",
     "150" = "Rating extrapolated due to insufficient gaugings",
+    "151" = "Data lost due to natural causes / vandalism",
+    "153" = "Data not recorded. Probe out of water/below instrument threshold",
+    "161" = "Poor quality data from debris affecting sensor",
     "170" = "Raw unedited data from secondary/backup sensor",
+    "180" = "Data not recorded, equipment malfunction",
     "255" = "Missing data"
   )
+
+  # and what should we do with each code?
   recommendation_list <- list(
     "1" = "Use",
     "2" = "Use",
     "3" = "Use",
     "10" = "Use",
+    "11" = "Use with caution",
     "15" = "Use",
     "50" = "Use with caution",
+    "76" = "Use with caution",
     "82" = "Use with caution",
     "100" = "Use with caution",
     "104" = "Use with caution",
     "149" = "Use with caution",
     "150" = "Use with caution",
+    "151" = "Do not use",
+    "153" = "Do not use",
+    "161" = "Do not use",
     "170" = "Do not use",
+    "180" = "Do not use",
     "255" = "Missing data"
   )
 
@@ -645,4 +686,3 @@ check_quality <- function(data) {
   codes_breakdown[codes_breakdown$count > 0, ]
 
 }
-
