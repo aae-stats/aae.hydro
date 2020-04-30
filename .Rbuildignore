@@ -1,2 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+
+todo.md
+
+^.lintr$
+^.travis.yml$
+
+^docs$
