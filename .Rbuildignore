@@ -1,7 +1,11 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 
+..Rcheck/*
+
 todo.md
+
+.git*
 
 ^.lintr$
 ^.travis.yml$
