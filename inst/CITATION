@@ -1,0 +1,13 @@
+citHeader("To cite aae.data in publications use:")
+
+citEntry(entry = "Misc",
+  title        = "{aae.data}: Download and Summarise Streamflow Data in R",
+  author       = personList(as.person("Jian D. L. Yen")),
+  url          = "https://github.com/aae.stats/aae.data",
+
+  textVersion  =
+  paste("Jian D. L. Yen (2020).",
+        "aae.data: download and summarise streamflow data in R.",
+        "R package.",
+        "Available at: https://github.com/aae.stats/aae.data.")
+)

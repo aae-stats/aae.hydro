@@ -1,0 +1,73 @@
+---
+title: "Downloading streamflow data"
+author: "Jian Yen"
+date: "30/04/2020"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Downloading streamflow data}
+  %\usepackage[utf8]{inputenc}
+---
+```{r setup, include = FALSE}
+# display code by default
+knitr::opts_chunk$set(echo = TRUE)
+
+# load some packages (won't need first 3 once package loads correctly)
+library(httr)
+library(jsonlite)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+
+# source some scripts (won't need once package loads correctly)
+source("R/db_queries.R")
+source("R/fetch_data.R")
+```
+
+## First steps: accessing flow data
+
+The first challenge is to access streamflow data. The `aae.data` package (hopefully) makes this easy. It links directly to the Vicwater/WMIS database to download flow from any gauge for any years. Getting data from R looks a bit like this:
+
+```{r flow-download}
+# Download data for five sites, based on their gauge numbers:
+#   - 405232 (Goulburn @ McCoys Bridge)
+#   - 406201 (Campaspe @ Barnadown)
+#   - 406202 (Campaspe @ Rochester D/S Waranga Western Ch Syphn)
+#   - 406276 (Campaspe @ Fehrings Lane)
+#   - 406278 (Campaspe @ Backhaus Road)
+# `start` and `end` bound the dates we want, in any reasonable format (yyyy-mm-dd, dd-mm-yy, etc.).
+# `variables` define the variables we want, with somewhat flexible names (e.g. discharge, streamflow,
+#   flow, temp, temperature, water_temperature). Can define variables by WMIS code if you know it.
+flow_data <- fetch_data(
+  sites = c("405232", "406201", "406202", "406276", "406278"),
+  start = "2004-01-01",
+  end = "2020-04-21",
+  variables = c("flow", "temp", "depth")
+)
+```
+
+Note the warnings: data are either unavailable or partially available at some sites. You can use the `list_variables` function to work out which variables are measured where and when. Note that discharge is tricky because, in most cases, it's computed from water height and a ratings table, so won't appear in the list of variables even if it's available.
+
+This has grabbed a big data set in long(ish) format (observations in rows). The data look a bit like this:
+
+```{r view-data, echo = FALSE}
+flow_data %>% as_tibble
+```
+
+We can also get a summary of the quality of the downloaded data with the `check_quality` function, which spits out a count of quality codes and their interpretations.
+
+```{r check-quality}
+flow_data %>% check_quality %>% as_tibble
+```
+
+The second challenge is to format these flow data in a way that's useful. This will depend on your own personal preferences, but here's one idea that uses the `tidyr` and `dplyr` packages.
+
+```{r flow-formatting}
+# let's put the three variables in their own columns, along with information
+#   on their quality codes and unitsflow_wide <- flow_data %>% pivot_wider(
+  id_cols = c(date_formatted, site_name, site_code),
+  names_from = variable_name,
+  values_from = c(value, units, quality_code)
+)
+
+```
