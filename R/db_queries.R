@@ -161,7 +161,7 @@ check_available <- function(sites, start, end, variables, data_source) {
 }
 
 #'
-#' @importFrom jsonlite fromJSON
+#' @importFrom jsonlite fromJSON content
 #'
 # #' @importFrom lubridate ymd_hms
 #'
@@ -248,7 +248,7 @@ query_database <- function(address, sites,
 }
 
 #'
-#' @importFrom jsonlite fromJSON
+#' @importFrom jsonlite fromJSON content
 #'
 # #' @importFrom lubridate ymd_hms
 #'
