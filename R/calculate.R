@@ -17,15 +17,16 @@ NULL
 #' @param date a vector of dates in any format accepted by \pkg{lubridate}.
 #'   There should be one date for each observation in \code{value}
 #' @param resolution a function defining the temporal resolution of calculations.
-#'   See details
+#'   See \link{resolution}.
 #' @param fun a function (unquoted) used to calculate the final metric. Defaults
 #'   to \code{median} but any R function that returns a single numeric value will
-#'   work. The \pkg{aae.data} provides three alternatives: \code{days_below},
+#'   work. The \pkg{aae.data} provides three additional options: \code{days_below},
 #'   \code{days_above}, and \code{rolling_range}
-#' @param rescale a \code{list} containing any of four elements that define how
-#'   a metric should be rescaled following calculation. Defaults to NULL, in which
-#'   case the output metric is not rescaled. The four options are: \code{subset},
-#'   \code{fun}, \code{season}, and \code{args}. See details for further information.
+#' @param rescale a logical or function specifying the how a metric should be rescaled
+#'   following calculation. Defaults to NULL, in which case the output metric is not
+#'   rescaled. If `TRUE`, then values are rescaled by the long-term median of the input
+#'   data. See \link{rescale} for details on specifying functions with more nuanced
+#'   calculations of rescale values.
 #' @param \dots any additional arguments to be passed to \code{fun}
 #'
 #' @details \code{calculate} is the main function used to calculate metrics from
@@ -34,19 +35,16 @@ NULL
 #'   temporal resolution and any subsetting of data within seasons or years. Currently
 #'   available \code{resolution} functions are \code{survey}, \code{weekly}, \code{monthly},
 #'   \code{annual}, and \code{baseline}. These functions calculate metrics by survey season,
-#'   week, month, year, and averaged over all years, respectively. See below for further
+#'   week, month, year, and averaged over all years, respectively. See \link{resolution} for further
 #'   details of seasonal subsetting in the \code{survey} and \code{baseline} functions.
 #'
 #'   The \code{rescale} argument gives the option of rescaling metrics by some other value
 #'   calculated from the data, such as a long-term average. This is included to allow
-#'   standardisation of metrics among rivers. \code{rescale} is a list that takes any of
-#'   four elements. \code{subset} is a numeric vector that defines the years over which a
-#'   long-term value should be calculated (defaults to all years included in \code{value}).
-#'   \code{fun} defines the function used to calculate a long-term value (defaults to
-#'   \code{median}). \code{season} is a numeric vector that defines the months in which
-#'   the long-term value should be calculated (defaults to all months, \code{1:12}). \code{args}
-#'   is a list containing any further arguments to pass to the \code{fun} defined in \code{rescale}
-#'   (e.g. \code{na.rm = TRUE}).
+#'   standardisation of metrics among rivers. \code{rescale} is defined by a function that
+#'   specifies four elements; the subset of years over which the scaling value is calculated,
+#'   the fun used to calculate the scaling value, the season in which a scaling value is calculated,
+#'   and any further arguments used by the function calculating a scaling value. For details, see
+#'   \link{rescale}.
 #'
 #' @examples
 #' \dontrun{
@@ -89,21 +87,22 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
   if (!is.null(rescale)) {
 
     # if so, set some defaults
-    rescale_list <- list(
-      subset = min(year(rescale_date)):max(year(rescale_date)),
-      fun = median,
-      season = 1:12,
-      args = list()
-    )
-
-    # and overwrite these if specified
-    rescale_list[names(rescale)]  <- rescale
+    if (isTRUE(rescale)) {
+      rescale <- by_generic(
+        min(year(rescale_date)):max(year(rescale_date)),
+        fun = median,
+        season = 1:12
+      )
+    } else {
+      if (!is.function(rescale))
+        stop("rescale must be one of NULL, TRUE, or a function", call. = FALSE)
+    }
 
     # define settings for baseline calculation
-    baseline_settings <- baseline(season = rescale_list$season, subset = rescale_list$subset)
+    baseline_settings <- baseline(season = rescale$season, subset = rescale$subset)
 
     # reduce value and date to subset if required
-    if (!is.null(rescale_list$subset)) {
+    if (!is.null(rescale$subset)) {
       idx <- identify_subset(rescale_date, baseline_settings)
       rescale_date <- rescale_date[idx]
       rescale_value <- rescale_value[idx]
@@ -114,7 +113,7 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
     rescale_interval <- define_interval(rescale_target, date = rescale_date, settings = baseline_settings)
 
     # now calculate `fun` for what's left
-    baseline <- do.call(rescale_list$fun, c(list(rescale_value[rescale_interval]), rescale_list$args))
+    baseline <- do.call(rescale$fun, c(list(rescale_value[rescale_interval]), rescale$args))
 
     # and rescale output
     out <- out / baseline
@@ -160,132 +159,6 @@ define_target <- function(date, settings) {
     target
   )
 
-}
-
-# parse seasons and convert to correct months
-match_season <- function(season, relative = FALSE) {
-
-  print_name <- "season"
-  if (relative)
-    print_name <- paste0("relative_", print_name)
-
-  switch(
-    season,
-    "full_year" = 1:12,
-    "summer" = 12:14,
-    "winter" = 6:8,
-    "spring" = 9:11,
-    "spawning" = 10:12,
-    stop(
-      "You've set ", print_name, " = '", season, "' but ", print_name,
-      " must be one of full_year, antecedent, summer, winter, spring, or spawning.",
-      call. = FALSE
-    )
-  )
-
-}
-
-#' @rdname calculate
-#'
-#' @export
-#'
-#' @importFrom lubridate years is.period
-#'
-#' @param season define months of year in which to calculate the metric (see details)
-#' @param lag lag in calculation. Can be defined in any time period using the methods
-#'   in \pkg{lubridate} (see details)
-#' @param subset a numeric vector defining years in which the metric should be calculated.
-#'   Can be a continuous or discontinuous set of years
-#'
-#' @details The \code{survey} function defines seasons relative to survey times, so
-#'   months 1-12 are Jan-Dec in the year prior to surveys (a year earlier than requested
-#'   in \code{calculate}), and months 13-24 are Jan-Dec in the year of surveys.
-#'
-#'   The \code{baseline} function defines seasons relative to the year of flow measurement,
-#'   so months 1-12 are Jan-Dec in the year requested.
-#'
-#'   The \code{lag} argument defaults to \code{years} for the \code{survey}, \code{monthly},
-#'   \code{annual}, and \code{baseline} functions, and defaults to \code{weeks} for the
-#'   \code{weekly} function. The \code{lag} argument is also used in \code{rolling_range},
-#'   where it defaults to the unit of measurement in the input data (days, in most cases).
-#'
-survey <- function(season = 1:12, lag = 0, subset = NULL) {
-
-  if (is.character(season))
-    season <- match_season(season)
-
-  # user can pass a different period (e.g. months) but default to years
-  if (!is.period(lag))
-    lag <- years(lag)
-
-  # if subset is required, don't cut off previous year's flow because it's needed
-  if (!is.null(subset))
-    subset <- c(min(subset) - 1L, subset)
-
-  # return
-  list(type = "survey", season = season, lag = lag, subset = subset, unit = "years")
-
-}
-
-#' @rdname calculate
-#'
-#' @export
-#'
-#' @importFrom lubridate weeks is.period
-#'
-weekly <- function(lag = 0, subset = NULL) {
-
-  # user can pass a different period (e.g. months) but default to weeks
-  if (!is.period(lag))
-    lag <- weeks(lag)
-
-  # return
-  list(type = "weekly", lag = lag, subset = subset, unit = "weeks")
-
-}
-
-#' @rdname calculate
-#'
-#' @export
-#'
-#' @importFrom lubridate years is.period
-#'
-monthly <- function(lag = 0, subset = NULL) {
-
-  # user can pass a different period (e.g. weeks) but default to years
-  if (!is.period(lag))
-    lag <- years(lag)
-
-  # return
-  list(type = "monthly", lag = lag, subset = subset, unit = "months")
-
-}
-
-#' @rdname calculate
-#'
-#' @export
-#'
-#' @importFrom lubridate years is.period
-#'
-annual <- function(season = 1:12, lag = 0, subset = NULL) {
-
-  # user can pass a different period (e.g. months) but default to years
-  if (!is.period(lag))
-    lag <- years(lag)
-
-  # return
-  list(type = "annual", season = season, lag = lag, subset = subset, unit = "years")
-
-}
-
-#' @rdname calculate
-#'
-#' @export
-#'
-#' @importFrom lubridate years
-#'
-baseline <- function(season = 1:12, subset = NULL) {
-  list(type = "baseline", season = season, lag = years(0), subset = subset, unit = years(10000))
 }
 
 #'
