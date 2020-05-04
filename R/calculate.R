@@ -272,9 +272,13 @@ get_range <- function(x, type = "ratio") {
 #' @param type specify how the difference (range) is calculated in
 #'   \code{rolling_range}. Defaults to "ratio" but setting any other
 #'   string will switch to absolute difference
+#' @param lag lag in calculation. Can be defined in any time period using the methods
+#'   in \pkg{lubridate} (see details)
 #'
 #' @details \code{rolling_range} calculates the maximum ratio or
 #'   absolute difference in a variable over a specified lag.
+#'   The \code{lag} argument defaults to the unit of measurement
+#'   in the input data (days, in most cases).
 #'
 rolling_range <- function(x, lag, type = "ratio", ...){
 

@@ -2,6 +2,10 @@
 
 export(annual)
 export(baseline)
+export(by_generic)
+export(by_max)
+export(by_mean)
+export(by_median)
 export(calculate)
 export(check_quality)
 export(days_above)
