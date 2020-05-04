@@ -86,8 +86,6 @@ list_variables <- function(sites, data_source = NULL) {
 #'
 #' @importFrom httr GET
 #'
-#' @param sites a character or numeric vector of site codes (gauge numbers)
-#'
 #' @details \code{list_datasources} queries the WMIS database to identify all
 #'   data sources avaiable at a given site.
 #'
@@ -163,8 +161,7 @@ check_available <- function(sites, start, end, variables, data_source) {
 #'
 #' @importFrom jsonlite fromJSON
 #' @importFrom httr content
-#'
-# #' @importFrom lubridate ymd_hms
+#' @importFrom lubridate ymd_hms
 #'
 # format variable lists returned in JSON format
 format_JSON_vars <- function(response) {
@@ -251,8 +248,7 @@ query_database <- function(address, sites,
 #'
 #' @importFrom jsonlite fromJSON
 #' @importFrom httr content
-#'
-# #' @importFrom lubridate ymd_hms
+#' @importFrom lubridate ymd_hms
 #'
 # format flow data returned in JSON format
 format_JSON_flow <- function(response) {
