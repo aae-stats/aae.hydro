@@ -7,3 +7,4 @@
 - [] check message printed about missing data, seems to print discharge as missing if converted from height
 - [] add functions for rescale rather than a list argument; could have defaults such as by_median
 - [] shift to-do list to GH issues page
+- [] fix warning about data availability; currently prints "no data" and "incomplete data" even if only one is true
