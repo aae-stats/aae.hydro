@@ -21,6 +21,7 @@ Start by loading the `aae.data` package and downloading some data to work with.
 ```{r getting-started}
 # load some packages we'll use
 library(aae.data)
+library(lubridate)
 library(dplyr)
 library(tidyr)
 
