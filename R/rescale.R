@@ -77,3 +77,13 @@ by_generic <- function(subset, season = 1:12, fun = median, ...) {
   list(subset = subset, fun = fun, season = season, args = args)
 
 }
+
+# check rescale arguments are OK
+check_rescale <- function(x) {
+
+  ok <- all(c("subset", "fun", "season", "args") %in% names(x))
+
+  if (!ok)
+    stop("rescale must be a list containing four arguments. See ?rescale for details", call. = FALSE)
+
+}

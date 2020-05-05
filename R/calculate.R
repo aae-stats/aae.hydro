@@ -94,8 +94,9 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
         season = 1:12
       )
     } else {
-      if (!is.function(rescale))
-        stop("rescale must be one of NULL, TRUE, or a function", call. = FALSE)
+      if (!is.list(rescale))
+        stop("rescale must be one of NULL, TRUE, or an evaluated call to a rescale function. See ?rescale for details", call. = FALSE)
+      check_rescale(rescale)
     }
 
     # define settings for baseline calculation
