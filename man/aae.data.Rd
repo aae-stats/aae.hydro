@@ -3,7 +3,6 @@
 \docType{package}
 \name{aae.data}
 \alias{aae.data}
-\alias{aae.data-package}
 \title{aae.data: download and summarise streamflow data in R}
 \description{
 A tool to access streamflow data and associated data from

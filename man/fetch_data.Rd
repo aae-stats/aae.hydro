@@ -5,8 +5,15 @@
 \alias{check_quality}
 \title{Download data from Victorian WMIS}
 \usage{
-fetch_data(sites, start, end, variables, include_missing = FALSE,
-  options = list(), data_source = "A")
+fetch_data(
+  sites,
+  start,
+  end,
+  variables,
+  include_missing = FALSE,
+  options = list(),
+  data_source = "A"
+)
 
 check_quality(data)
 }
