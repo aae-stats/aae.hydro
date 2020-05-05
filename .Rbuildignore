@@ -3,11 +3,10 @@
 
 ..Rcheck/*
 
-vignettes/*
-tests/*
-todo.md
+^tests$
+^todo.md$
 
-.git*
+^.git$
 
 ^.lintr$
 ^.travis.yml$
