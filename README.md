@@ -5,7 +5,7 @@
 You can install the package directly from GitHub using the remotes package:
 
 ``` r
-remotes::install_github('aae-stats/aae.data')
+remotes::install_github("aae-stats/aae.data")
 ```
 
 Please leave feedback, bug reports or feature requests at the GitHub [issues page](https://github.com/aae-stats/aae.data/issues). 
