@@ -1,5 +1,3 @@
-### Working with aquatic data in R
-
 ## We have access to lots of data
 
 We have so much data. But it's hard to navigate and work with everything, especially when we want to bring together data from different places. The `aae.data` R package is an attempt to simplify this process. The main aim of the package is to provide an interface among databases and data sets, not to recreate any one database. It's a work in progress, currently focused on streamflow data. Down the track, it'd be great to include any and all AAE data sets that exist.
