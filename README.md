@@ -50,15 +50,7 @@ Once we have access to flow data, the next challenge is to convert flow data int
 library(dplyr)
 library(tidyr)
 
-# get some data to work with in the vignette
-flow_data <- fetch_data(
-  sites = c("405232", "406201", "406202", "406276", "406278"),
-  start = "2004-01-01",
-  end = "2020-04-21",
-  variables = c("flow", "temp", "depth")
-)
-
-# and convert it to a wider format
+# convert flow data to a wider format
 flow_wide <- flow_data %>% pivot_wider(
   id_cols = c(date_formatted, site_name, site_code),
   names_from = variable_name,
