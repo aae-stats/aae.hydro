@@ -11,15 +11,16 @@ NULL
 #' @importFrom httr GET
 #'
 #' @param sites a character or numeric vector of site codes (gauge numbers)
-#' @param data_source database from which data are downloaded. Defaults to NULL, which
-#'    will check all available data sources. The \code{list_datasources} function
-#'    lists all available data_sources for a given site
+#' @param data_source database from which data are downloaded. Defaults to
+#'   NULL, which will check all available data sources. The
+#'   \code{list_datasources} function lists all available data_sources for
+#'   a given site
 #'
 #' @details \code{list_variables} queries the WMIS database to identify all
 #'   variables avaiable at a given site.
 #'
-#' @return a \code{data.frame} containing information on variables and data sources at
-#'   each site.
+#' @return a \code{data.frame} containing information on variables and
+#'   data sources at each site.
 #'
 #' @examples
 #' \dontrun{
@@ -65,7 +66,7 @@ list_variables <- function(sites, data_source = NULL) {
                     query = query)
 
     # convert output into a readable table
-    tmp <- format_JSON_vars(response)
+    tmp <- format_json_vars(response)
 
     # add a column with datasource identifier
     tmp$datasource <- rep(data_source[i], nrow(tmp))
@@ -140,11 +141,13 @@ check_available <- function(sites, start, end, variables, data_source) {
       if (nrow(var_row) > 0) {
 
         # will automatically create multiple intervals for multiple dates
-        database_interval <-var_row$start_date %--% var_row$end_date
+        database_interval <- var_row$start_date %--% var_row$end_date
         requested_interval <- ymd_hms(start) %--% ymd_hms(end)
 
         # do we have data for at least part of the requested interval?
-        partial[i, j] <- any(int_overlaps(requested_interval, database_interval))
+        partial[i, j] <- any(
+          int_overlaps(requested_interval, database_interval)
+        )
         complete[i, j] <- requested_interval %within% database_interval
 
       }
@@ -164,7 +167,7 @@ check_available <- function(sites, start, end, variables, data_source) {
 #' @importFrom lubridate ymd_hms
 #'
 # format variable lists returned in JSON format
-format_JSON_vars <- function(response) {
+format_json_vars <- function(response) {
 
   # pull out the results
   output_list <- fromJSON(content(response, as = "text"))
@@ -187,8 +190,26 @@ format_JSON_vars <- function(response) {
   out$end_date <- ymd_hms(out$period_end)
 
   # reorder and rename some columns
-  out <- out[, c("site_name", "site", "name", "units", "start_date", "end_date", "variable", "subdesc", "period_start", "period_end")]
-  colnames(out) <- c("site_name", "site_code", "variable_name", "units", "start_date", "end_date", "variable_code", "details", "period_start", "period_end")
+  out <- out[, c("site_name",
+                 "site",
+                 "name",
+                 "units",
+                 "start_date",
+                 "end_date",
+                 "variable",
+                 "subdesc",
+                 "period_start",
+                 "period_end")]
+  colnames(out) <- c("site_name",
+                     "site_code",
+                     "variable_name",
+                     "units",
+                     "start_date",
+                     "end_date",
+                     "variable_code",
+                     "details",
+                     "period_start",
+                     "period_end")
 
   # and return
   out
@@ -251,7 +272,7 @@ query_database <- function(address, sites,
 #' @importFrom lubridate ymd_hms
 #'
 # format flow data returned in JSON format
-format_JSON_flow <- function(response) {
+format_json_flow <- function(response) {
 
   # turn the output into something readable
   output <- fromJSON(content(response, as = "text"))$return
@@ -284,8 +305,11 @@ format_JSON_flow <- function(response) {
     out$units <- rep(varto_info$units, times = n_obs)
 
     # qc_reference is tricky because it might be one or more columns of data
-    qc_reference <- output$traces$quality_codes[rep(seq_along(raw_data), times = n_obs), , drop = FALSE]
-    colnames(qc_reference) <- paste0("quality_reference_", colnames(qc_reference))
+    qc_reference <-
+      output$traces$quality_codes[rep(seq_along(raw_data), times = n_obs), ,
+                                  drop = FALSE]
+    colnames(qc_reference) <- paste0("quality_reference_",
+                                     colnames(qc_reference))
     out <- cbind(out, qc_reference)
 
   } else {

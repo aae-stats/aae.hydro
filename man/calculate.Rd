@@ -22,31 +22,31 @@ and designed for daily data but may work in other cases}
 \item{date}{a vector of dates in any format accepted by \pkg{lubridate}.
 There should be one date for each observation in \code{value}}
 
-\item{resolution}{a function defining the temporal resolution of calculations.
-See \link{resolution}.}
+\item{resolution}{a function defining the temporal resolution of
+calculations. See \link{resolution}.}
 
 \item{fun}{a function (unquoted) used to calculate the final metric. Defaults
-to \code{median} but any R function that returns a single numeric value will
-work. The \pkg{aae.data} provides three additional options: \code{days_below},
-\code{days_above}, and \code{rolling_range}}
+to \code{median} but any R function that returns a single numeric value
+will work. The \pkg{aae.data} provides three additional options:
+\code{days_below}, \code{days_above}, and \code{rolling_range}}
 
-\item{rescale}{a logical or function specifying the how a metric should be rescaled
-following calculation. Defaults to NULL, in which case the output metric is not
-rescaled. If `TRUE`, then values are rescaled by the long-term median of the input
-data. See \link{rescale} for details on specifying functions with more nuanced
-calculations of rescale values.}
+\item{rescale}{a logical or function specifying the how a metric should be
+rescaled following calculation. Defaults to NULL, in which case the output
+metric is not rescaled. If `TRUE`, then values are rescaled by the
+long-term median of the input data. See \link{rescale} for details on
+specifying functions with more nuanced calculations of rescale values.}
 
 \item{\dots}{any additional arguments to be passed to \code{fun}}
 
 \item{x}{time series to be tested against threshold in \code{days_below} and
-\code{days_above}, or a time series on which to calculate rolling ranges with
-the \code{rolling_range} function}
+\code{days_above}, or a time series on which to calculate rolling ranges
+with the \code{rolling_range} function}
 
 \item{threshold}{defines level at which observations are considered
 low or high}
 
-\item{lag}{lag in calculation. Can be defined in any time period using the methods
-in \pkg{lubridate} (see details)}
+\item{lag}{lag in calculation. Can be defined in any time period
+using the methods in \pkg{lubridate} (see details)}
 
 \item{type}{specify how the difference (range) is calculated in
 \code{rolling_range}. Defaults to "ratio" but setting any other
@@ -59,21 +59,24 @@ Calculate metrics at different temporal resolutions and with
 }
 \details{
 \code{calculate} is the main function used to calculate metrics from
-  input time series data. This function is designed to be highly flexible, and is
-  used in conjunction with a set of \code{resolution} functions that define the
-  temporal resolution and any subsetting of data within seasons or years. Currently
-  available \code{resolution} functions are \code{survey}, \code{weekly}, \code{monthly},
-  \code{annual}, and \code{baseline}. These functions calculate metrics by survey season,
-  week, month, year, and averaged over all years, respectively. See \link{resolution} for further
-  details of seasonal subsetting in the \code{survey} and \code{baseline} functions.
+  input time series data. This function is designed to be highly flexible,
+  and is used in conjunction with a set of \code{resolution} functions that
+  define the temporal resolution and any subsetting of data within seasons or
+  years. Currently available \code{resolution} functions are \code{survey},
+  \code{weekly}, \code{monthly}, \code{annual}, and \code{baseline}. These
+  functions calculate metrics by survey season, week, month, year, and
+  averaged over all years, respectively. See \link{resolution} for further
+  details of seasonal subsetting in the \code{survey} and \code{baseline}
+  functions.
 
-  The \code{rescale} argument gives the option of rescaling metrics by some other value
-  calculated from the data, such as a long-term average. This is included to allow
-  standardisation of metrics among rivers. \code{rescale} is defined by a function that
-  specifies four elements; the subset of years over which the scaling value is calculated,
-  the fun used to calculate the scaling value, the season in which a scaling value is calculated,
-  and any further arguments used by the function calculating a scaling value. For details, see
-  \link{rescale}.
+  The \code{rescale} argument gives the option of rescaling metrics by some
+  other value calculated from the data, such as a long-term average. This is
+  included to allow standardisation of metrics among rivers. \code{rescale}
+  is defined by a function that specifies four elements; the subset of years
+  over which the scaling value is calculated, the fun used to calculate the
+  scaling value, the season in which a scaling value is calculated, and any
+  further arguments used by the function calculating a scaling value. For
+  details, see \link{rescale}.
 
 The \code{days_below} and \code{days_above} functions
   calculate the number of days below a defined threshold. Designed

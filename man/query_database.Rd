@@ -13,13 +13,14 @@ list_datasources(sites)
 \arguments{
 \item{sites}{a character or numeric vector of site codes (gauge numbers)}
 
-\item{data_source}{database from which data are downloaded. Defaults to NULL, which
-will check all available data sources. The \code{list_datasources} function
-lists all available data_sources for a given site}
+\item{data_source}{database from which data are downloaded. Defaults to
+NULL, which will check all available data sources. The
+\code{list_datasources} function lists all available data_sources for
+a given site}
 }
 \value{
-a \code{data.frame} containing information on variables and data sources at
-  each site.
+a \code{data.frame} containing information on variables and
+  data sources at each site.
 
 a \code{list} containing information on data sources at each site.
 }

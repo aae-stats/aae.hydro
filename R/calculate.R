@@ -16,35 +16,38 @@ NULL
 #'   and designed for daily data but may work in other cases
 #' @param date a vector of dates in any format accepted by \pkg{lubridate}.
 #'   There should be one date for each observation in \code{value}
-#' @param resolution a function defining the temporal resolution of calculations.
-#'   See \link{resolution}.
+#' @param resolution a function defining the temporal resolution of
+#'   calculations. See \link{resolution}.
 #' @param fun a function (unquoted) used to calculate the final metric. Defaults
-#'   to \code{median} but any R function that returns a single numeric value will
-#'   work. The \pkg{aae.data} provides three additional options: \code{days_below},
-#'   \code{days_above}, and \code{rolling_range}
-#' @param rescale a logical or function specifying the how a metric should be rescaled
-#'   following calculation. Defaults to NULL, in which case the output metric is not
-#'   rescaled. If `TRUE`, then values are rescaled by the long-term median of the input
-#'   data. See \link{rescale} for details on specifying functions with more nuanced
-#'   calculations of rescale values.
+#'   to \code{median} but any R function that returns a single numeric value
+#'   will work. The \pkg{aae.data} provides three additional options:
+#'   \code{days_below}, \code{days_above}, and \code{rolling_range}
+#' @param rescale a logical or function specifying the how a metric should be
+#'   rescaled following calculation. Defaults to NULL, in which case the output
+#'   metric is not rescaled. If `TRUE`, then values are rescaled by the
+#'   long-term median of the input data. See \link{rescale} for details on
+#'   specifying functions with more nuanced calculations of rescale values.
 #' @param \dots any additional arguments to be passed to \code{fun}
 #'
 #' @details \code{calculate} is the main function used to calculate metrics from
-#'   input time series data. This function is designed to be highly flexible, and is
-#'   used in conjunction with a set of \code{resolution} functions that define the
-#'   temporal resolution and any subsetting of data within seasons or years. Currently
-#'   available \code{resolution} functions are \code{survey}, \code{weekly}, \code{monthly},
-#'   \code{annual}, and \code{baseline}. These functions calculate metrics by survey season,
-#'   week, month, year, and averaged over all years, respectively. See \link{resolution} for further
-#'   details of seasonal subsetting in the \code{survey} and \code{baseline} functions.
+#'   input time series data. This function is designed to be highly flexible,
+#'   and is used in conjunction with a set of \code{resolution} functions that
+#'   define the temporal resolution and any subsetting of data within seasons or
+#'   years. Currently available \code{resolution} functions are \code{survey},
+#'   \code{weekly}, \code{monthly}, \code{annual}, and \code{baseline}. These
+#'   functions calculate metrics by survey season, week, month, year, and
+#'   averaged over all years, respectively. See \link{resolution} for further
+#'   details of seasonal subsetting in the \code{survey} and \code{baseline}
+#'   functions.
 #'
-#'   The \code{rescale} argument gives the option of rescaling metrics by some other value
-#'   calculated from the data, such as a long-term average. This is included to allow
-#'   standardisation of metrics among rivers. \code{rescale} is defined by a function that
-#'   specifies four elements; the subset of years over which the scaling value is calculated,
-#'   the fun used to calculate the scaling value, the season in which a scaling value is calculated,
-#'   and any further arguments used by the function calculating a scaling value. For details, see
-#'   \link{rescale}.
+#'   The \code{rescale} argument gives the option of rescaling metrics by some
+#'   other value calculated from the data, such as a long-term average. This is
+#'   included to allow standardisation of metrics among rivers. \code{rescale}
+#'   is defined by a function that specifies four elements; the subset of years
+#'   over which the scaling value is calculated, the fun used to calculate the
+#'   scaling value, the season in which a scaling value is calculated, and any
+#'   further arguments used by the function calculating a scaling value. For
+#'   details, see \link{rescale}.
 #'
 #' @examples
 #' \dontrun{
@@ -63,9 +66,15 @@ NULL
 #' # example of multiple metrics with dplyr
 #'
 #' }
-calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...) {
+calculate <- function(value,
+                      date,
+                      resolution,
+                      fun = median,
+                      rescale = NULL,
+                      ...) {
 
-  # reduce value and date to subset if required, but keep a full copy for rescale
+  # reduce value and date to subset if required, but keep a full copy
+  #   for rescale
   if (!is.null(resolution$subset)) {
     idx <- identify_subset(date, resolution)
     rescale_date <- date
@@ -78,7 +87,10 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
   target <- define_target(date, resolution)
 
   # work out which dates line up with intervals defined by resolution
-  intervals <- lapply(target, define_interval, date = date, settings = resolution)
+  intervals <- lapply(target,
+                      define_interval,
+                      date = date,
+                      settings = resolution)
 
   # calculate `fun` for each survey year
   out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
@@ -95,12 +107,15 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
       )
     } else {
       if (!is.list(rescale))
-        stop("rescale must be one of NULL, TRUE, or an evaluated call to a rescale function. See ?rescale for details", call. = FALSE)
+        stop("rescale must be one of NULL, TRUE, or an evaluated call",
+             " to a rescale function. See ?rescale for details",
+             call. = FALSE)
       check_rescale(rescale)
     }
 
     # define settings for baseline calculation
-    baseline_settings <- baseline(season = rescale$season, subset = rescale$subset)
+    baseline_settings <- baseline(season = rescale$season,
+                                  subset = rescale$subset)
 
     # reduce value and date to subset if required
     if (!is.null(rescale$subset)) {
@@ -111,17 +126,20 @@ calculate <- function(value, date, resolution, fun = median, rescale = NULL, ...
 
     # now calculate the target for baseline calculation
     rescale_target <- define_target(rescale_date, settings = baseline_settings)
-    rescale_interval <- define_interval(rescale_target, date = rescale_date, settings = baseline_settings)
+    rescale_interval <- define_interval(rescale_target,
+                                        date = rescale_date,
+                                        settings = baseline_settings)
 
     # now calculate `fun` for what's left
-    baseline <- do.call(rescale$fun, c(list(rescale_value[rescale_interval]), rescale$args))
+    baseline <- do.call(rescale$fun,
+                        c(list(rescale_value[rescale_interval]), rescale$args))
 
     # and rescale output
     out <- out / baseline
 
   }
 
-  # reformat output? (e.g. convert to data.frame, add date info, add column names)
+  # reformat output (convert to data.frame, add date info, add column names)
   out <- format_output(out, target, resolution)
 
   # return output
@@ -180,7 +198,8 @@ define_season <- function(target, date, season) {
   }
   if (spanning) {
     idx <- season > 12
-    out <- (year(date) == year(target) & month(date) %in% (season[idx] - 12L)) | (year(date) == (year(target) - 1L) & month(date) %in% (season[!idx]))
+    out <- (year(date) == year(target) & month(date) %in% (season[idx] - 12L)) |
+      (year(date) == (year(target) - 1L) & month(date) %in% (season[!idx]))
   }
 
   out
@@ -196,7 +215,8 @@ define_interval <- function(target, date, settings) {
   switch(settings$type,
          "survey" = define_season(target, date, settings$season),
          "baseline" = month(date) %in% settings$season,
-         "annual" = month(date) %in% settings$season & year(date) == year(target),
+         "annual" = month(date) %in% settings$season &
+                      year(date) == year(target),
          floor_date(date, unit = settings$unit) == target)
 
 }
@@ -225,8 +245,8 @@ format_output <- function(x, target, resolution) {
 #' @export
 #'
 #' @param x time series to be tested against threshold in \code{days_below} and
-#'   \code{days_above}, or a time series on which to calculate rolling ranges with
-#'   the \code{rolling_range} function
+#'   \code{days_above}, or a time series on which to calculate rolling ranges
+#'   with the \code{rolling_range} function
 #' @param threshold defines level at which observations are considered
 #'   low or high
 #'
@@ -273,15 +293,15 @@ get_range <- function(x, type = "ratio") {
 #' @param type specify how the difference (range) is calculated in
 #'   \code{rolling_range}. Defaults to "ratio" but setting any other
 #'   string will switch to absolute difference
-#' @param lag lag in calculation. Can be defined in any time period using the methods
-#'   in \pkg{lubridate} (see details)
+#' @param lag lag in calculation. Can be defined in any time period
+#'   using the methods in \pkg{lubridate} (see details)
 #'
 #' @details \code{rolling_range} calculates the maximum ratio or
 #'   absolute difference in a variable over a specified lag.
 #'   The \code{lag} argument defaults to the unit of measurement
 #'   in the input data (days, in most cases).
 #'
-rolling_range <- function(x, lag, type = "ratio", ...){
+rolling_range <- function(x, lag, type = "ratio", ...) {
 
   n <- length(x)
 

@@ -30,40 +30,46 @@ for most reliable results use yyyy-mm-dd}
 Many variations are accounted for (e.g. streamflow, flow, discharge).
 WMIS variable codes will work.}
 
-\item{include_missing}{a \code{logical} defining whether to pad output data to include
-dates where data are missing}
+\item{include_missing}{a \code{logical} defining whether to pad output data
+to include dates where data are missing}
 
 \item{options}{a \code{list} specifying one of four advanced options:
-- the interval type (defaults to "daily") for calculation of downloaded values
+- the interval type (defaults to "daily") for calculation of downloaded
+  values
 - the data_type (defaults to "mean") for aggregation of downloaded values
-- the multiplier (defaults to "1") used to expand or shrink the requested interval
-- varfrom and varto (default to NULL) to specify explicit variable conversions with
-  WMIS variable codes. Both varfrom and varto must be provided}
+- the multiplier (defaults to "1") used to expand or shrink the requested
+  interval
+- varfrom and varto (default to NULL) to specify explicit variable
+  conversions with WMIS variable codes. Both varfrom and varto must
+  be provided}
 
-\item{data_source}{database from which data are downloaded. Defaults to "A", which
-covers most cases. The \code{list_datasources} function will list all available
-data_sources for a given site}
+\item{data_source}{database from which data are downloaded. Defaults to "A",
+which covers most cases. The \code{list_datasources} function will list
+all available data_sources for a given site}
 
 \item{data}{a \code{data.frame} returned by \code{fetch_data}}
 }
 \value{
-a \code{data.frame} containing the downloaded flow data and relevant identifiers
-  for each observation.
+a \code{data.frame} containing the downloaded flow data and relevant
+  identifiers for each observation.
 }
 \description{
-Download data from the Victorian Water Measurement Information System (WMIS)
-  for one or more variables at one or more sites.
+Download data from the Victorian Water Measurement
+  Information System (WMIS) for one or more variables at one or more sites.
 }
 \details{
-Streamflow and related data (e.g. temperature) are recorded as instantaneous values,
-   so must be aggregated prior to download. The default settings specify daily means, but
-   other options are available with the \code{options} parameter.
+Streamflow and related data (e.g. temperature) are recorded as
+  instantaneous values, so must be aggregated prior to download. The default
+  settings specify daily means, but other options are available with the
+  \code{options} parameter.
 
-   Dates and variable names are interpreted loosely. Dates will recognise any of the following
-   formats: \code{"ymd"}, \code{"dmy"}, \code{"y"}, \code{"ymd_HMS"}, and \code{"ymd_HM"}.
-   Variables will ignore case and remove all spaces and underscores. Once tidied, any variable name
-   containing any of the following will be recognised: \code{"flow"}, \code{"discharge"}, \code{"depth"},
-   \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
+  Dates and variable names are interpreted loosely. Dates will recognise any
+  of the following formats: \code{"ymd"}, \code{"dmy"}, \code{"y"},
+  \code{"ymd_HMS"}, and \code{"ymd_HM"}. Variables will ignore case and
+  remove all spaces and underscores. Once tidied, any variable name containing
+  any of the following will be recognised: \code{"flow"}, \code{"discharge"},
+  \code{"depth"}, \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"},
+  \code{"do"}, and \code{"turb"}.
 
 tabulates data by QC code, with descriptions of each QC code.
 }

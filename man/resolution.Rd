@@ -20,28 +20,36 @@ annual(season = 1:12, lag = 0, subset = NULL)
 baseline(season = 1:12, subset = NULL)
 }
 \arguments{
-\item{season}{define months of year in which to calculate the metric (see details)}
+\item{season}{define months of year in which to calculate the
+metric (see details)}
 
-\item{lag}{lag in calculation. Can be defined in any time period using the methods
-in \pkg{lubridate} (see details)}
+\item{lag}{lag in calculation. Can be defined in any time period
+using the methods in \pkg{lubridate} (see details)}
 
-\item{subset}{a numeric vector defining years in which the metric should be calculated.
-Can be a continuous or discontinuous set of years}
+\item{subset}{a numeric vector defining years in which the
+metric should be calculated. Can be a continuous or discontinuous
+set of years}
+}
+\value{
+a list defining the resolution type, season (if relevant), lag, subset,
+  and appopriate units for use by \pkg{lubridate}.
 }
 \description{
 Functions to define temporal resolutions used in
   \code{calculate}.
 }
 \details{
-The \code{survey} function defines seasons relative to survey times, so
-  months 1-12 are Jan-Dec in the year prior to surveys (a year earlier than requested
-  in \code{calculate}), and months 13-24 are Jan-Dec in the year of surveys.
+The \code{survey} function defines seasons relative to
+  survey times, so months 1-12 are Jan-Dec in the year prior to
+  surveys (a year earlier than requested in \code{calculate}),
+  and months 13-24 are Jan-Dec in the year of surveys.
 
-  The \code{baseline} function defines seasons relative to the year of flow measurement,
-  so months 1-12 are Jan-Dec in the year requested.
+  The \code{baseline} function defines seasons relative to the year
+  of flow measurement, so months 1-12 are Jan-Dec in the year requested.
 
-  The \code{lag} argument defaults to \code{years} for the \code{survey}, \code{monthly},
-  \code{annual}, and \code{baseline} functions, and defaults to \code{weeks} for the
-  \code{weekly} function. The \code{lag} argument is also used in \code{rolling_range},
-  where it defaults to the unit of measurement in the input data (days, in most cases).
+  The \code{lag} argument defaults to \code{years} for the \code{survey},
+  \code{monthly}, \code{annual}, and \code{baseline} functions, and
+  defaults to \code{weeks} for the \code{weekly} function. The \code{lag}
+  argument is also used in \code{rolling_range}, where it defaults to the
+  unit of measurement in the input data (days, in most cases).
 }

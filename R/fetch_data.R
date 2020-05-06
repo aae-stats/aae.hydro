@@ -1,7 +1,7 @@
 #' @name fetch_data
 #' @title Download data from Victorian WMIS
-#' @description Download data from the Victorian Water Measurement Information System (WMIS)
-#'   for one or more variables at one or more sites.
+#' @description Download data from the Victorian Water Measurement
+#'   Information System (WMIS) for one or more variables at one or more sites.
 NULL
 
 #' @rdname fetch_data
@@ -16,30 +16,36 @@ NULL
 #' @param variables a character or numeric vector of variable names or codes.
 #'    Many variations are accounted for (e.g. streamflow, flow, discharge).
 #'    WMIS variable codes will work.
-#' @param include_missing a \code{logical} defining whether to pad output data to include
-#'    dates where data are missing
+#' @param include_missing a \code{logical} defining whether to pad output data
+#'   to include dates where data are missing
 #' @param options a \code{list} specifying one of four advanced options:
-#'    - the interval type (defaults to "daily") for calculation of downloaded values
+#'    - the interval type (defaults to "daily") for calculation of downloaded
+#'      values
 #'    - the data_type (defaults to "mean") for aggregation of downloaded values
-#'    - the multiplier (defaults to "1") used to expand or shrink the requested interval
-#'    - varfrom and varto (default to NULL) to specify explicit variable conversions with
-#'      WMIS variable codes. Both varfrom and varto must be provided
-#' @param data_source database from which data are downloaded. Defaults to "A", which
-#'    covers most cases. The \code{list_datasources} function will list all available
-#'    data_sources for a given site
+#'    - the multiplier (defaults to "1") used to expand or shrink the requested
+#'      interval
+#'    - varfrom and varto (default to NULL) to specify explicit variable
+#'      conversions with WMIS variable codes. Both varfrom and varto must
+#'      be provided
+#' @param data_source database from which data are downloaded. Defaults to "A",
+#'   which covers most cases. The \code{list_datasources} function will list
+#'   all available data_sources for a given site
 #'
-#' @details Streamflow and related data (e.g. temperature) are recorded as instantaneous values,
-#'    so must be aggregated prior to download. The default settings specify daily means, but
-#'    other options are available with the \code{options} parameter.
+#' @details Streamflow and related data (e.g. temperature) are recorded as
+#'   instantaneous values, so must be aggregated prior to download. The default
+#'   settings specify daily means, but other options are available with the
+#'   \code{options} parameter.
 #'
-#'    Dates and variable names are interpreted loosely. Dates will recognise any of the following
-#'    formats: \code{"ymd"}, \code{"dmy"}, \code{"y"}, \code{"ymd_HMS"}, and \code{"ymd_HM"}.
-#'    Variables will ignore case and remove all spaces and underscores. Once tidied, any variable name
-#'    containing any of the following will be recognised: \code{"flow"}, \code{"discharge"}, \code{"depth"},
-#'    \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
+#'   Dates and variable names are interpreted loosely. Dates will recognise any
+#'   of the following formats: \code{"ymd"}, \code{"dmy"}, \code{"y"},
+#'   \code{"ymd_HMS"}, and \code{"ymd_HM"}. Variables will ignore case and
+#'   remove all spaces and underscores. Once tidied, any variable name containing
+#'   any of the following will be recognised: \code{"flow"}, \code{"discharge"},
+#'   \code{"depth"}, \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"},
+#'   \code{"do"}, and \code{"turb"}.
 #'
-#' @return a \code{data.frame} containing the downloaded flow data and relevant identifiers
-#'   for each observation.
+#' @return a \code{data.frame} containing the downloaded flow data and relevant
+#'   identifiers for each observation.
 #'
 #' @examples
 #' \dontrun{
@@ -137,7 +143,11 @@ fetch_data <- function(sites, start, end, variables,
 
   # get variables if varfrom/varto/var_list not provided
   if (is.null(opt$varfrom) | is.null(opt$varto)) {
-    vars <- parse_variables(variables, sites, dates$start, dates$end, data_source)
+    vars <- parse_variables(variables,
+                            sites,
+                            dates$start,
+                            dates$end,
+                            data_source)
   } else {
     vars <- list(varfrom = opt$varfrom, varto = opt$varto)
   }
@@ -162,7 +172,7 @@ fetch_data <- function(sites, start, end, variables,
     )
 
     # extract and reformat the output
-    output <- format_JSON_flow(response)
+    output <- format_json_flow(response)
 
   } else {
 
@@ -184,11 +194,15 @@ fetch_data <- function(sites, start, end, variables,
       )
 
       # format output so it's readable
-      tmp <- format_JSON_flow(response)
+      tmp <- format_json_flow(response)
 
-      # if there's no output, add a placeholder so we know that variable is missing
+      # if there's no output, add a placeholder so we know that
+      #   variable is missing
       if (is.null(tmp)) {
-        output[[i]] <- fill_missing(dates, vars$varfrom[i], vars$varto[i], sites)
+        output[[i]] <- fill_missing(dates,
+                                    vars$varfrom[i],
+                                    vars$varto[i],
+                                    sites)
       } else {
         output[[i]] <- tmp
       }
@@ -249,8 +263,14 @@ fetch_data <- function(sites, start, end, variables,
 parse_dates <- function(start, end) {
 
   # try and convert whatever we've been given to some sort of date
-  start <- parse_date_time(start, orders = c("ymd", "dmy", "y", "ymd_HMS", "ymd_HM"))
-  end <- parse_date_time(end, orders = c("ymd", "dmy", "y", "ymd_HMS", "ymd_HM"))
+  start <- parse_date_time(
+    start,
+    orders = c("ymd", "dmy", "y", "ymd_HMS", "ymd_HM")
+  )
+  end <- parse_date_time(
+    end,
+    orders = c("ymd", "dmy", "y", "ymd_HMS", "ymd_HM")
+  )
 
   # turn it to a string so we can work with regex
   start <- as.character(start)
@@ -305,7 +325,8 @@ parse_variables <- function(variables, sites, start, end, data_source) {
       var_tmp)
   }
 
-  # create vectors of varfrom and varto to be cycled over if making multiple queries
+  # create vectors of varfrom and varto to be cycled over if making
+  #   multiple queries
   varto <- varfrom
   if ("141.00" %in% varfrom) {
     varfrom <- c(varfrom, "100.00", "141.50")
@@ -342,11 +363,14 @@ parse_variables <- function(variables, sites, start, end, data_source) {
 send_message <- function(check, sites, vars) {
 
   # create a matrix of sites/vars to match dims of check
-  sites_expanded <- matrix(rep(sites, times = length(vars)), ncol = length(vars))
-  vars_expanded <- matrix(rep(vars, each = length(sites)), ncol = length(vars))
+  sites_expanded <- matrix(rep(sites, times = length(vars)),
+                           ncol = length(vars))
+  vars_expanded <- matrix(rep(vars, each = length(sites)),
+                          ncol = length(vars))
 
-  # check is 0 if both missing (!complete & !partial), 1 if partial (!complete & partial)
-  #   and 2 if complete data are available (complete & partial)
+  # check is 0 if both missing (!complete & !partial),
+  #   1 if partial (!complete & partial) and 2 if complete
+  #   data are available (complete & partial)
   missing_sites <- sites_expanded[check == 0]
   missing_vars <- vars_expanded[check == 0]
   partial_sites <- sites_expanded[check == 1]
@@ -368,15 +392,35 @@ send_message <- function(check, sites, vars) {
   missing_msg <- special_paste(missing)
   partial_msg <- special_paste(partial)
 
-  # print message if anything is incomplete
-  message(
-    "No data for the following sites and variables:\n",
-    missing_msg,
-    "\nIncomplete data for the following sites and variables:\n",
-    partial_msg,
-    "\nUse list_variables(c(", paste0(unique(c(missing_sites, partial_sites)), collapse = ", "),
-    ")) to check data availability."
-  )
+  if (length(missing > 0)) {
+
+    # print full message if anything is missing
+    message(
+      "No data for the following sites and variables:\n",
+      missing_msg,
+      "\nIncomplete data for the following sites and variables:\n",
+      partial_msg,
+      "\nUse list_variables(c(",
+      paste0(unique(c(missing_sites, partial_sites)),
+             collapse = ", "),
+      ")) to check data availability."
+    )
+
+  } else {
+
+    # or reduced message if there are nothing is fully missing
+    if (length(partial > 0)) {
+      message(
+        "Incomplete data for the following sites and variables:\n",
+        partial_msg,
+        "\nUse list_variables(c(",
+        paste0(unique(c(missing_sites, partial_sites)),
+               collapse = ", "),
+        ")) to check data availability."
+      )
+    }
+
+  }
 
 }
 
@@ -402,8 +446,12 @@ special_paste <- function(obj) {
     if (ntmp == 2)
       var_tmp <- paste0(var_tmp, collapse = " and ")
 
-    if (ntmp > 2)
-      var_tmp <- paste0(paste0(var_tmp[seq_len(ntmp - 1)], collapse = ", "), " and ", var_tmp[ntmp])
+    if (ntmp > 2) {
+      var_tmp <- paste0(
+        paste0(var_tmp[seq_len(ntmp - 1)], collapse = ", "),
+        " and ", var_tmp[ntmp]
+      )
+    }
 
     out <- paste0(out, paste(unique_sites[i], var_tmp, sep = ": "), "\n")
 
@@ -436,10 +484,16 @@ check_options <- function(x) {
       "tot", "point", "partialtot", "cum")
 
   # warn if these are not ok
-  if (!interval_ok)
-    stop("interval must be one of day, month, year, hour, minute, second, or period", call. = FALSE)
-  if (!data_type_ok)
-    stop("data_type must be one of mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, cum", call. = FALSE)
+  if (!interval_ok) {
+    stop("interval must be one of day, month,",
+         " year, hour, minute, second, or period",
+         call. = FALSE)
+  }
+  if (!data_type_ok) {
+    stop("data_type must be one of mean, maxmin, max, min, start,",
+         " end, first, last, tot, point, partialtot, cum",
+         call. = FALSE)
+  }
 
   # return corrected names if it didn't error first
   x
@@ -452,11 +506,14 @@ standardise_columns <- function(out) {
   # what are the unique qc reference codes that we need to inclue?
   unique_qc_refs <- unique(
     unlist(
-      sapply(out, function(x) colnames(x)[grep("quality_reference", colnames(x))])
+      sapply(out,
+             function(x) colnames(x)[grep("quality_reference",
+                                          colnames(x))])
     )
   )
 
-  # loop over each element one-at-a-time and fill missing qc references with a column of NAs
+  # loop over each element one-at-a-time and fill missing qc
+  #   references with a column of NAs
   for (i in seq_along(out)) {
     tmp <- out[[i]]
     tmp_cols <- colnames(tmp)
@@ -533,9 +590,11 @@ expand_missing <- function(data, start, end) {
     for (j in seq_along(var_list)) {
 
       # subset to single variable
-      tmp <- data[data$site_code == site_list[i] & data$variable_code == var_list[j], ]
+      tmp <- data[data$site_code == site_list[i] &
+                    data$variable_code == var_list[j], ]
 
-      # hack approach for now: just add missing for extensions beyond available date range
+      # hack approach for now: just add missing for extensions
+      #   beyond available date range
       available_dates <- tmp$date_formatted
 
       # do all data exist for this variable?
@@ -552,7 +611,8 @@ expand_missing <- function(data, start, end) {
         data_fill$quality_reference_255 <- "Missing data"
         data_fill$date <- as.character(data_fill$date_formatted)
         data_fill$date <- gsub("-|:| ", "", data_fill$date)
-        data_fill$date <- paste0(data_fill$date, paste0(rep(0, 6), collapse = ""))
+        data_fill$date <- paste0(data_fill$date,
+                                 paste0(rep(0, 6), collapse = ""))
 
         # fill other columns if no data exist for this variable at all
         if (all(is.na(available_dates))) {
@@ -563,7 +623,8 @@ expand_missing <- function(data, start, end) {
           data_fill$units <- NA
         }
 
-        # we've added a column to data_fill with qc_ref255 info, add this to data if not already there
+        # we've added a column to data_fill with qc_ref255 info,
+        #   add this to data if not already there
         if (is.null(data$quality_reference_255))
           data$quality_reference_255 <- NA
 
@@ -657,19 +718,24 @@ check_quality <- function(data) {
   )
 
   # tabulate data
-  codes_breakdown <- table(data$quality_code, data$variable_code, data$site_code)
+  codes_breakdown <- table(data$quality_code,
+                           data$variable_code,
+                           data$site_code)
 
   # tidy the tabulated data, add code info
   classifiers <- dimnames(codes_breakdown)
   lengths <- sapply(classifiers, length)
   codes_breakdown <- data.frame(
     site = rep(classifiers[[3]], each = lengths[1] * lengths[2]),
-    variable = rep(rep(classifiers[[2]], each = lengths[1]), times = lengths[3]),
+    variable = rep(rep(classifiers[[2]], each = lengths[1]),
+                   times = lengths[3]),
     quality_code = rep(classifiers[[1]], times = lengths[2] * lengths[3]),
     count = c(codes_breakdown)
   )
-  codes_breakdown$description <- code_list[as.character(codes_breakdown$quality_code)]
-  codes_breakdown$recommendation <- recommendation_list[as.character(codes_breakdown$quality_code)]
+  codes_breakdown$description <-
+    code_list[as.character(codes_breakdown$quality_code)]
+  codes_breakdown$recommendation <-
+    recommendation_list[as.character(codes_breakdown$quality_code)]
 
   # add variable names
   var_names <- c(
