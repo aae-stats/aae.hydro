@@ -7,8 +7,9 @@
 .RData
 .Ruserdata
 
+doc
+Meta
+
 *_cache/
 
 *.pdf
-doc
-Meta
