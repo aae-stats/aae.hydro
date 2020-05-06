@@ -79,4 +79,4 @@ The vignettes contain several more detailed examples.
 
 Please leave feedback, bug reports or feature requests at the GitHub [issues page](https://github.com/aae-stats/aae.data/issues). 
 
-[![build status](https://travis-ci.com/aae-stats/aae.data.svg?branch=master)](https://travis-ci.com/aae-stats/aae.data) [![codecov.io](https://codecov.io/github/aae-stats/aae.data/coverage.svg?branch=master)](https://codecov.io/github/aae-stats/aae.data?branch=master) [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![build status](https://travis-ci.org/aae-stats/aae.data.svg?branch=master)](https://travis-ci.org/aae-stats/aae.data) [![codecov.io](https://codecov.io/github/aae-stats/aae.data/coverage.svg?branch=master)](https://codecov.io/github/aae-stats/aae.data?branch=master) [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

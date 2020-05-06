@@ -2,6 +2,9 @@ sudo: required
 language: r
 warnings_are_errors: false
 dist: trusty
+env:
+  global:
+    - LINTR_COMMENT_BOT=true
 
 r_packages:
 - stats
