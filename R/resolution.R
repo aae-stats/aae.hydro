@@ -58,8 +58,8 @@ match_season <- function(season, relative = FALSE) {
 #'   argument is also used in \code{rolling_range}, where it defaults to the
 #'   unit of measurement in the input data (days, in most cases).
 #'
-#' @return a list defining the resolution type, season (if relevant), lag, subset,
-#'   and appopriate units for use by \pkg{lubridate}.
+#' @return a list defining the resolution type, season (if relevant),
+#'   lag, subset, and appopriate units for use by \pkg{lubridate}.
 #'
 survey <- function(season = 1:12, lag = 0, subset = NULL) {
 

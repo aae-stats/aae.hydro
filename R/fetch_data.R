@@ -39,10 +39,10 @@ NULL
 #'   Dates and variable names are interpreted loosely. Dates will recognise any
 #'   of the following formats: \code{"ymd"}, \code{"dmy"}, \code{"y"},
 #'   \code{"ymd_HMS"}, and \code{"ymd_HM"}. Variables will ignore case and
-#'   remove all spaces and underscores. Once tidied, any variable name containing
-#'   any of the following will be recognised: \code{"flow"}, \code{"discharge"},
-#'   \code{"depth"}, \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"},
-#'   \code{"do"}, and \code{"turb"}.
+#'   remove all spaces and underscores. Once tidied, any variable name
+#'   containing any of the following will be recognised: \code{"flow"},
+#'   \code{"discharge"}, \code{"depth"}, \code{"height"}, \code{"temp"},
+#'   \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
 #'
 #' @return a \code{data.frame} containing the downloaded flow data and relevant
 #'   identifiers for each observation.
@@ -679,8 +679,10 @@ check_quality <- function(data) {
     "10" = "Data transposed from recorder chart",
     "11" = "Raw data used for operational purposes. Not validated",
     "15" = "Minor editing. >+/-10mm drift correction",
-    "50" = "Medium editing >+/-30mm drift correction, significant single spike removal etc.",
-    "76" = "Reliable non-linear interpolation using other data sources, not a correlation",
+    "50" = paste0("Medium editing >+/-30mm drift correction, ",
+                  "significant single spike removal etc."),
+    "76" = paste0("Reliable non-linear interpolation using ",
+                  "other data sources, not a correlation"),
     "82" = "Linear interpolation across gap in records (< 0.5 day)",
     "100" = "Irregular data, beyond QC=50 or unexplained",
     "104" = "Records manually estimated",
