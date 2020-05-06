@@ -11,7 +11,7 @@ You can install the `aae.data` package from GitHub. Although the package doesn't
 install.packages("remotes")
 
 # install the aae.data package from GitHub
-remotes::install_github("aae.stats/aae.data@master")
+remotes::install_github("aae.stats/aae.data@master", build_vignettes = TRUE)
 ```
 
 Once completed, you should be able to load the `aae.data` package with `library(aae.data)`.
@@ -74,6 +74,8 @@ spring_flow <- calculate(
   na.rm = TRUE
 )
 ```
+
+The vignettes contain several more detailed examples.
 
 Please leave feedback, bug reports or feature requests at the GitHub [issues page](https://github.com/aae-stats/aae.data/issues). 
 
