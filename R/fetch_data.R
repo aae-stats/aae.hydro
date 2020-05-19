@@ -225,19 +225,13 @@ fetch_data <- function(sites, start, end, variables,
   missing_with_value <- output$quality_code == 255 & !is.na(output$value)
   if (any(missing_with_value)) {
 
+    # make output columns slightly more informative
+    output$value[missing_with_value] <- NA
+    output$quality_reference_255[missing_with_value] <- "Missing data"
+
     # remove these if !include_missing
-    if (!include_missing) {
-
+    if (!include_missing)
       output <- output[!missing_with_value, ]
-
-    } else {
-
-      # make output columns slightly more informative
-      output$value[missing_with_value] <- NA
-      output$quality_reference_255[missing_with_value] <- "Missing data"
-
-    }
-
 
   }
 
@@ -328,10 +322,12 @@ parse_variables <- function(variables, sites, start, end, data_source) {
   # create vectors of varfrom and varto to be cycled over if making
   #   multiple queries
   varto <- varfrom
+  expanded_flow <- FALSE
   if ("141.00" %in% varfrom) {
     varfrom <- c(varfrom, "100.00", "141.50")
     varto <- c(varto, "141.00", "141.50")
     variables <- c(variables, rep("discharge", 2))
+    expanded_flow <- TRUE
   }
 
   # check whether variables exist in data
@@ -339,15 +335,19 @@ parse_variables <- function(variables, sites, start, end, data_source) {
   partial <- available$partial
   complete <- available$complete
 
-  # remove excess variables if not available
+  # remove excess flow variables if not available
   missing <- apply(partial, 2, function(x) all(!x))
-  if (any(missing)) {
-    varfrom <- varfrom[!missing]
-    varto <- varto[!missing]
-    variables <- variables[!missing]
-    partial <- partial[, !missing, drop = FALSE]
-    complete <- complete[, !missing, drop = FALSE]
+  if (expanded_flow & any(missing)) {
+    is_flow <- varto %in% c("141.00", "141.50")
+    if (all(missing[is_flow]))
+      is_flow[1] <- FALSE
+    varfrom <- varfrom[!missing | !is_flow]
+    varto <- varto[!missing | !is_flow]
+    variables <- variables[!missing | !is_flow]
+    partial <- partial[, !missing | !is_flow, drop = FALSE]
+    complete <- complete[, !missing | !is_flow, drop = FALSE]
   }
+
 
   # if anything is missing, print out a message
   check <- partial + complete
