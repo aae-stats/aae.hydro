@@ -54,9 +54,6 @@ test_that("fetch_data returns correct values", {
 # check dims of output when include_missing is TRUE/FALSE
 test_that("include_missing works correctly in fetch_data", {
 
-  # seems to return nothing for a variable if nothing available at all (i.e. include_missing picks up partial mismatches)
-  #   Is this desirable? We have a message for this purpose.
-
   # checks gap filling when multiple sites have inconsistent data availability
   with_missing <- fetch_data(
     sites = gauge_list[1],

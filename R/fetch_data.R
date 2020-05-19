@@ -341,13 +341,13 @@ parse_variables <- function(variables, sites, start, end, data_source) {
     is_flow <- varto %in% c("141.00", "141.50")
     if (all(missing[is_flow]))
       is_flow[1] <- FALSE
-    varfrom <- varfrom[!missing | !is_flow]
-    varto <- varto[!missing | !is_flow]
-    variables <- variables[!missing | !is_flow]
-    partial <- partial[, !missing | !is_flow, drop = FALSE]
-    complete <- complete[, !missing | !is_flow, drop = FALSE]
+    to_keep <- !(missing & is_flow)
+    varfrom <- varfrom[to_keep]
+    varto <- varto[to_keep]
+    variables <- variables[to_keep]
+    partial <- partial[, to_keep, drop = FALSE]
+    complete <- complete[, to_keep, drop = FALSE]
   }
-
 
   # if anything is missing, print out a message
   check <- partial + complete
@@ -392,7 +392,7 @@ send_message <- function(check, sites, vars) {
   missing_msg <- special_paste(missing)
   partial_msg <- special_paste(partial)
 
-  if (length(missing > 0)) {
+  if (length(missing > 0) & length(partial > 0)) {
 
     # print full message if anything is missing
     message(
@@ -407,6 +407,18 @@ send_message <- function(check, sites, vars) {
     )
 
   } else {
+
+    # or reduced message if there is nothing partially missing
+    if (length(missing > 0)) {
+      message(
+        "No data for the following sites and variables:\n",
+        missing_msg,
+        "\nUse list_variables(c(",
+        paste0(unique(c(missing_sites, partial_sites)),
+               collapse = ", "),
+        ")) to check data availability."
+      )
+    }
 
     # or reduced message if there are nothing is fully missing
     if (length(partial > 0)) {
