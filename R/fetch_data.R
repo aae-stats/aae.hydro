@@ -222,7 +222,7 @@ fetch_data <- function(sites, start, end, variables,
     output <- expand_missing(output, dates$start, dates$end)
 
   # check if vicwater has included missing data with a value (usually 0.0)
-  missing_with_value <- output$quality_code == 255 & !is.na(output$value)
+  missing_with_value <- output$quality_code >= 250 & !is.na(output$value)
   if (any(missing_with_value)) {
 
     # make output columns slightly more informative
@@ -705,6 +705,7 @@ check_quality <- function(data) {
     "161" = "Poor quality data from debris affecting sensor",
     "170" = "Raw unedited data from secondary/backup sensor",
     "180" = "Data not recorded, equipment malfunction",
+    "250" = "Rating table suspended",
     "255" = "Missing data"
   )
 
@@ -728,6 +729,7 @@ check_quality <- function(data) {
     "161" = "Do not use",
     "170" = "Do not use",
     "180" = "Do not use",
+    "250" = "Missing data",
     "255" = "Missing data"
   )
 
