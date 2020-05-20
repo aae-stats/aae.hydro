@@ -108,13 +108,13 @@ weekly <- function(lag = 0, subset = NULL) {
 #'
 #' @export
 #'
-#' @importFrom lubridate years is.period
+#' @importFrom lubridate is.period months
 #'
 monthly <- function(lag = 0, subset = NULL) {
 
-  # user can pass a different period (e.g. weeks) but default to years
+  # user can pass a different period (e.g. weeks) but default to months
   if (!is.period(lag))
-    lag <- years(lag)
+    lag <- months(lag)
 
   # return
   list(type = "monthly",
