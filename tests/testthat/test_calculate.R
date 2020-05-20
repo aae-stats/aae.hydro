@@ -78,6 +78,39 @@ test_that("calculate returns correct survey values with different seasons", {
     expect_equal(value, target)
   }
 
+  # season as a string
+  value_list <- c("full_year", "spawning", "winter", "spring")
+  month_list <- list(1:12, 10:12, 6:8, 9:11)
+  for (i in seq_along(value_list)) {
+    value <- flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = survey(season = value_list[i]),
+        na.rm = TRUE
+      )
+    )
+    flow_tmp <- flow_sim %>% filter(month %in% month_list[[i]])
+    target <- calculate_manual(flow_tmp$value,
+                               flow_tmp$year + 1,
+                               subset = 2011:2015)
+    expect_equal(value, target)
+  }
+
+  # error if season not a known string
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = survey(season = "summery"),
+        na.rm = TRUE
+      )
+    ),
+    "season must be one of"
+  )
+
+
 })
 
 test_that(
@@ -532,5 +565,84 @@ test_that("calculate returns correct values with rescaling", {
   target$metric <-
     target$metric / median(flow_sim$value[flow_sim$month %in% c(1:4)])
   expect_equal(target, value)
+
+})
+
+test_that("rescale returns error when subset not specified", {
+
+  # annual values rescaled by long-term median in all months
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = by_median(),
+        na.rm = TRUE
+      )
+    ),
+    "subset of years must be specified"
+  )
+
+  # annual values rescaled by long-term max in all months
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = by_max(),
+        na.rm = TRUE
+      )
+    ),
+    "subset of years must be specified"
+  )
+
+
+  # annual values rescaled by long-term mean in all months
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = by_mean(),
+        na.rm = TRUE
+      )
+    ),
+    "subset of years must be specified"
+  )
+
+  # annual values rescaled by long-term variance/generic in all months
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = by_generic(fun = var),
+        na.rm = TRUE
+      )
+    ),
+    "subset of years must be specified"
+  )
+
+})
+
+test_that("rescale returns error when specified as incomplete list", {
+
+  # annual values rescaled by long-term median in all months
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = list(subset = c(2010:2014, fun = median)),
+        na.rm = TRUE
+      )
+    ),
+    "rescale must be a list containing four arguments"
+  )
 
 })
