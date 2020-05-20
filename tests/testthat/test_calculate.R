@@ -247,6 +247,28 @@ test_that(
   )
   expect_equal(value, target)
 
+  # rolling range with absolute difference
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      fun = rolling_range,
+      resolution = annual(season = 1:12, lag = 0, subset = 2010:2014),
+      lag = 3,
+      type = "diff"
+    )
+  )
+  flow_tmp <- flow_sim %>% filter(year < 2015)
+  target <- calculate_manual(
+    flow_tmp$value,
+    flow_tmp$year,
+    fun = rolling_range,
+    subset = 2010:2014,
+    lag = 3,
+    type = "diff"
+  )
+  expect_equal(value, target)
+
 })
 
 test_that(
@@ -643,6 +665,40 @@ test_that("rescale returns error when specified as incomplete list", {
       )
     ),
     "rescale must be a list containing four arguments"
+  )
+
+})
+
+test_that("rescale can be specified directly with informative errors", {
+
+  # default rescale works (divide by long-term median)
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = annual(subset = c(2010:2014)),
+      rescale = TRUE,
+      na.rm = TRUE
+    )
+  )
+  target <- calculate_manual(flow_sim$value,
+                             flow_sim$year,
+                             subset = 2010:2014)
+  target$metric <- target$metric / median(flow_sim$value)
+  expect_equal(value, target)
+
+  # error if rescale isn't NULL, TRUE, or a list with correct elements
+  expect_error(
+    flow_sim %>% do(
+      calculate(
+        value = .$value,
+        date = .$date,
+        resolution = annual(subset = c(2010:2014)),
+        rescale = "median",
+        na.rm = TRUE
+      )
+    ),
+    "rescale must be one of "
   )
 
 })
