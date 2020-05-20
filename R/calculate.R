@@ -73,15 +73,19 @@ calculate <- function(value,
                       rescale = NULL,
                       ...) {
 
-  # reduce value and date to subset if required, but keep a full copy
-  #   for rescale
+  # deal with lag (defaults to 0), keeping correct copy for rescale
+  rescale_date <- date
+  rescale_value <- value
+  date <- date + resolution$lag
+
+  # reduce value and date to subset if required
   if (!is.null(resolution$subset)) {
     idx <- identify_subset(date, resolution)
-    rescale_date <- date
-    rescale_value <- value
     date <- date[idx]
     value <- value[idx]
   }
+
+  # need to deal with lag if subset not specified
 
   # define minimal target, accounting for possible lag
   target <- define_target(date, resolution)
