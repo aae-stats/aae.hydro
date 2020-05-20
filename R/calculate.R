@@ -148,17 +148,20 @@ calculate <- function(value,
 }
 
 #'
-#' @importFrom lubridate parse_date_time year
+#' @importFrom lubridate parse_date_time year years days
 #'
 # identify which observations sit within a specified subset
 identify_subset <- function(date, settings) {
 
-  # reduce date to range defined in `subset`, but keep track of lag
+  # reduce date to entire calendar year defined in `subset`
   subset <- parse_date_time(settings$subset, orders = c("y"))
+  subset <- interval(subset, subset + years(1) - days(1))
+
+  # but keep track of lag
   subset <- subset - settings$lag
 
   # return
-  year(date) %in% year(subset)
+  date %within% subset
 
 }
 
