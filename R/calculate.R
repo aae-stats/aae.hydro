@@ -156,8 +156,8 @@ identify_subset <- function(date, settings) {
   # reduce date to entire calendar year defined in `subset`
   #   but keep track of lag
   subset <- parse_date_time(settings$subset, orders = c("y"))
-  subset <- interval(subset - settings$lag,
-                     subset + years(1) - settings$lag - days(1))
+  subset <- interval(min(subset) - settings$lag,
+                     max(subset) + years(1) - settings$lag - days(1))
 
   # return
   date %within% subset
