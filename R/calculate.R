@@ -178,7 +178,9 @@ identify_subset <- function(date, settings) {
 define_target <- function(date, settings) {
 
   # return minimal target based on type
-  target <- unique(floor_date(date, unit = settings$unit))
+  target <- unique(
+    floor_date(date, unit = settings$unit, week_start = wday(date[1]))
+  )
 
   # return output, dropping first year for survey calculations
   switch(
@@ -232,9 +234,6 @@ define_interval <- function(target, date, settings) {
 
 # return an output data.frame with appropriate dates
 format_output <- function(x, target, resolution) {
-
-  # add lag back on to make returned dates match requested dates
-  target <- target + resolution$lag
 
   # weekly and monthly metrics need more resolved dates
   date <- switch(

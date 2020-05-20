@@ -349,7 +349,7 @@ test_that("calculate returns correct values with lags", {
     calculate(
       value = .$value,
       date = .$date,
-      resolution = weekly(lag = 3, subset = 2011),
+      resolution = weekly(lag = 3),
       na.rm = TRUE
     )
   )
