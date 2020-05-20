@@ -1,4 +1,5 @@
-# test the fetch_data function does what it says and gives useful warnings and errors
+# test the fetch_data function does what it says and gives useful warnings
+# and errors
 
 # setup: load some packages
 library(dplyr)
@@ -8,7 +9,8 @@ library(tidyr)
 # setup: load and clean some small data files to test downloads
 gauge_list <- c(225200, 405202, 406201, 409200)
 data_list <- lapply(
-  gauge_list, function(x) system.file("testdata", paste0(x, ".csv"), package = "aae.data")
+  gauge_list,
+  function(x) system.file("testdata", paste0(x, ".csv"), package = "aae.data")
 )
 data_list <- lapply(
   data_list,
@@ -25,7 +27,13 @@ test_that("fetch_data returns correct values", {
 
   # download data for sites and date ranges specified above
   fetched_data <- mapply(
-    function(x, y) fetch_data(sites = x, start = y[1], end = y[2], variables = c("depth", "flow"), include_missing = TRUE),
+    function(x, y) fetch_data(
+      sites = x,
+      start = y[1],
+      end = y[2],
+      variables = c("depth", "flow"),
+      include_missing = TRUE
+    ),
     gauge_list, date_range
   )
 
@@ -39,10 +47,14 @@ test_that("fetch_data returns correct values", {
                   values_from = c("value", "quality_code"))
 
     # check equal for both variables
-    expect_equal(data_tmp$value_stream_water_level_m, as.numeric(data_list[[i]]$water_level_m))
-    expect_equal(data_tmp$quality_code_stream_water_level_m, data_list[[i]]$qc_water_level)
-    expect_equal(data_tmp$value_stream_discharge_mld, as.numeric(data_list[[i]]$discharge_mld))
-    expect_equal(data_tmp$quality_code_stream_discharge_mld, data_list[[i]]$qc_discharge)
+    expect_equal(data_tmp$value_stream_water_level_m,
+                 as.numeric(data_list[[i]]$water_level_m))
+    expect_equal(data_tmp$quality_code_stream_water_level_m,
+                 data_list[[i]]$qc_water_level)
+    expect_equal(data_tmp$value_stream_discharge_mld,
+                 as.numeric(data_list[[i]]$discharge_mld))
+    expect_equal(data_tmp$quality_code_stream_discharge_mld,
+                 data_list[[i]]$qc_discharge)
 
   }
 
@@ -111,7 +123,8 @@ test_that("fetch_data messages, warns, and errors informatively", {
       variables = c("flow", "temp"),
       include_missing = FALSE
     ),
-    "No data for the following sites and variables:\n225200: temperature\n\nIncomplete data"
+    "No data for the following sites and variables:\n225200:",
+    " temperature\n\nIncomplete data"
   )
 
   # check message for multiple sites
