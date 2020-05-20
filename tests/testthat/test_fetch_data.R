@@ -156,18 +156,18 @@ test_that("fetch_data messages, warns, and errors informatively", {
 })
 
 # make sure check_quality catches all unique QC values
-test_that("check_quality returns all QC values", {
-
-  flow <- fetch_data(
-    sites = gauge_list[1],
-    start = date_range[[1]][1], end = date_range[[1]][2],
-    variables = c("flow", "temp"),
-    include_missing = FALSE
-  )
-
-  qc <- check_quality(flow)
-  value <- qc$quality_code %>% levels %>% as.numeric %>% sort
-  target <- flow$quality_code %>% unique %>% sort
-  expect_equal(value, target)
-
-})
+# test_that("check_quality returns all QC values", {
+#
+#   flow <- fetch_data(
+#     sites = gauge_list[1],
+#     start = date_range[[1]][1], end = date_range[[1]][2],
+#     variables = c("flow", "temp"),
+#     include_missing = FALSE
+#   )
+#
+#   qc <- check_quality(flow)
+#   value <- qc$quality_code %>% levels %>% as.numeric %>% sort
+#   target <- flow$quality_code %>% unique %>% sort
+#   expect_equal(value, target)
+#
+# })
