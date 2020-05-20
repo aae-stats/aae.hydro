@@ -92,6 +92,56 @@ test_that("include_missing works correctly in fetch_data", {
 
 })
 
+# check vectorised variable download where varfrom == varto
+test_that("var_list works when varfrom equals varto", {
+
+  # all vars that don't require conversion
+  direct_spec_string <- fetch_data(
+    sites = gauge_list[1],
+    start = "2011-02-01", end = "2011-02-05",
+    variables = c("do", "depth"),
+    include_missing = TRUE
+  )
+
+  # directly specifying varfrom and varto
+  direct_spec_num <- fetch_data(
+    sites = gauge_list[1],
+    start = "2017-09-29", end = "2017-10-02",
+    include_missing = TRUE,
+    options = list(varfrom = c("100.00", "215.00"),
+                   varto = c("100.00", "215.00"))
+  )
+
+})
+
+# check options errors correctly if db settings are inappopriate
+test_that("fetch_data errors when options are inappropriate", {
+
+  # wrong interval specification
+  expect_error(
+    fetch_data(
+      sites = gauge_list[1],
+      start = "2017-09-29", end = "2017-10-02",
+      variables = c("temp"),
+      include_missing = TRUE,
+      options = list(interval = "week")
+    ),
+    "interval must be one of"
+  )
+
+  expect_error(
+    fetch_data(
+      sites = gauge_list[1],
+      start = "2017-09-29", end = "2017-10-02",
+      variables = c("temp"),
+      include_missing = TRUE,
+      options = list(data_type = "var")
+    ),
+    "data_type must be one of "
+  )
+
+})
+
 # check warnings and errors come up appropriately
 test_that("fetch_data messages, warns, and errors informatively", {
 
@@ -152,6 +202,26 @@ test_that("fetch_data messages, warns, and errors informatively", {
     ),
     "Use list_variables\\(c\\(225200, 405202\\)\\)"
   )
+
+})
+
+# test variable listing by site
+test_that("list_variables returns all data sources and variables", {
+
+  var_list <- list_variables(gauge_list[2])
+
+  # data sources
+  expect_equal(unique(var_list$datasource),
+               c("A", "ACOPY", "TELEM", "TELEMCOPY"))
+
+  # site ID
+  expect_equal(unique(var_list$site_code),
+               as.character(gauge_list[2]))
+
+  # variable codes
+  expect_equal(unique(var_list$variable_code),
+               c("10.00", "100.00", "141.50", "141.00",
+                 "223.00", "300.00"))
 
 })
 
