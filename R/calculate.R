@@ -163,8 +163,7 @@ identify_subset <- function(date, settings) {
   subset <- lapply(
     subset,
     function(x)
-      interval(x - settings$lag,
-               x + years(1) - settings$lag - days(1))
+      interval(x, x + years(1) - days(1))
   )
 
   # return

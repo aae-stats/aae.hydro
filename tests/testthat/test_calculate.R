@@ -356,7 +356,7 @@ test_that("calculate returns correct values with lags", {
   flow_tmp <- flow_sim %>% mutate(
     date = date + weeks(3)
   )
-  flow_tmp <- flow_tmp %>% filter(year(date) == 2011)
+  flow_tmp <- flow_tmp %>% filter(date == 2011)
   target <- calculate_manual(
     flow_tmp$value,
     floor_date(flow_tmp$date, unit = "weeks")
