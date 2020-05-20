@@ -51,7 +51,7 @@ test_that("calculate returns correct survey values with different seasons", {
   )
   target <- calculate_manual(flow_sim$value,
                              flow_sim$year + 1,
-                             subset = 2010:2015)
+                             subset = 2011:2015)
   expect_equal(value, target)
 
   # each month separately

@@ -10,7 +10,7 @@ library(tidyr)
 gauge_list <- c(225200, 405202, 406201, 409200)
 data_list <- lapply(
   gauge_list,
-  function(x) system.file("testdata", paste0(x, ".csv"), package = "aae.data")
+  function(x) read.csv(system.file("testdata", paste0(x, ".csv"), package = "aae.data"))
 )
 data_list <- lapply(
   data_list,
