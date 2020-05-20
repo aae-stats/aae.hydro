@@ -153,11 +153,15 @@ calculate <- function(value,
 # identify which observations sit within a specified subset
 identify_subset <- function(date, settings) {
 
-  # reduce date to entire calendar year defined in `subset`
+  # reduce date to entirety of each calendar year defined in `subset`
   #   but keep track of lag
   subset <- parse_date_time(settings$subset, orders = c("y"))
-  subset <- interval(min(subset) - settings$lag,
-                     max(subset) + years(1) - settings$lag - days(1))
+  subset <- lapply(
+    subset,
+    function(x)
+      interval(x - settings$lag,
+               x + years(1) - settings$lag - days(1))
+  )
 
   # return
   date %within% subset
