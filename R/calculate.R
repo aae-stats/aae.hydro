@@ -238,10 +238,10 @@ define_interval <- function(target, date, settings) {
       target,
       function(x, y, z) switch(
         settings$type,
-        "survey" = define_season(x, x, z$season),
-        "baseline" = month(x) %in% z$season,
-        "annual" = month(x) %in% z$season &
-          year(x) == year(x)
+        "survey" = define_season(x, y, z$season),
+        "baseline" = month(y) %in% z$season,
+        "annual" = month(y) %in% z$season &
+          year(y) == year(x)
       ),
       y = date, z = settings
     )
