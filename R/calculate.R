@@ -233,21 +233,30 @@ define_season <- function(target, date, season) {
 define_interval <- function(target, date, settings) {
 
   # using loop to handle final case where targets are linked
-  out <- list()
-  if (length(target) > 0) {
-    target <- c(
-      target, target[[length(target)]] + get(settings$unit)(1)
+  if (settings$type %in% c("survey", "baseline", "annual")) {
+    out <- lapply(
+      target,
+      function(x, y, z) switch(
+        settings$type,
+        "survey" = define_season(x, x, z$season),
+        "baseline" = month(x) %in% z$season,
+        "annual" = month(x) %in% z$season &
+          year(x) == year(x)
+      ),
+      y = date, z = settings
     )
-  }
-  for (i in seq_along(target)[-length(target)]) {
-    out[[i]] <- switch(
-      settings$type,
-      "survey" = define_season(target[[i]], date, settings$season),
-      "baseline" = month(date) %in% settings$season,
-      "annual" = month(date) %in% settings$season &
-        year(date) == year(target[[i]]),
-      date %within% interval(target[[i]], target[[i + 1]] - days(1))
-    )
+  } else {
+    out <- list()
+    ntarget <- length(target)
+    if (ntarget > 0) {
+      target <- c(
+        target, target[[ntarget]] + get(settings$unit)(1)
+      )
+    }
+    for (i in seq_len(ntarget)) {
+      out[[i]] <-
+        date %within% interval(target[[i]], target[[i + 1]] - days(1))
+    }
   }
 
   # return
