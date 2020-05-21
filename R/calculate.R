@@ -73,10 +73,11 @@ calculate <- function(value,
                       rescale = NULL,
                       ...) {
 
-  # deal with lag (defaults to 0), keeping correct copy for rescale
-  rescale_date <- date
-  rescale_value <- value
-  date <- date + resolution$lag
+  # make copy of dates for rescale if needed
+  if (!is.null(rescale)) {
+    rescale_date <- date
+    rescale_value <- value
+  }
 
   # reduce value and date to subset if required
   if (!is.null(resolution$subset)) {
@@ -183,6 +184,9 @@ define_target <- function(date, settings) {
       date, unit = settings$unit, week_start = (wday(date[1]) - 1)
     )
   )
+
+  # add lag at this point
+  target <- target - settings$lag
 
   # return output, dropping first year for survey calculations
   switch(
