@@ -338,9 +338,12 @@ test_that("calculate returns correct weekly values", {
       na.rm = TRUE
     )
   )
-  flow_tmp <- flow_sim %>% filter(year == 2010)
-  target <- calculate_manual(flow_tmp$value,
-                             floor_date(flow_tmp$date, unit = "weeks"))
+  interval_set <- interval(dmy("01-01-2010"), dmy("06-01-2011"))
+  flow_tmp <- flow_sim %>% filter(date %within% interval_set)
+  target <- calculate_manual(
+    flow_tmp$value,
+    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1)
+  )
   expect_equal(value$metric, target$metric)
 
 })

@@ -127,7 +127,7 @@ calculate <- function(value,
 
     # now calculate `fun` for what's left
     baseline <- do.call(rescale$fun,
-                        c(list(rescale_value[rescale_interval]), rescale$args))
+                        c(list(rescale_value[rescale_interval[[1]]]), rescale$args))
 
     # and rescale output
     out <- out / baseline
@@ -182,9 +182,11 @@ define_target <- function(date, settings) {
   )
 
   # remove any target points that fall beyond available dates
-  #   account for subsetting
-  idx <- target %within% interval(min(date), max(date))
-  target <- target[idx]
+  #  except for baseline, where dates are squashed
+  if (settings$type != "baseline") {
+    idx <- target %within% interval(min(date), max(date))
+    target <- target[idx]
+  }
 
   # add lag at this point
   target <- target - settings$lag
@@ -230,8 +232,7 @@ define_season <- function(target, date, season) {
 # define observations in each target
 define_interval <- function(target, date, settings) {
 
-  # using loop to handle final case where we want to
-  #   run from target[i] to target[i + 1] - days(1)
+  # using loop to handle final case where targets are linked
   out <- list()
   if (length(target) > 0) {
     target <- c(
