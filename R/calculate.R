@@ -144,7 +144,7 @@ calculate <- function(value,
 }
 
 #'
-#' @importFrom lubridate parse_date_time year years days
+#' @importFrom lubridate parse_date_time year years days interval
 #'
 # identify which observations sit within a specified subset
 identify_subset <- function(date, settings) {
@@ -226,7 +226,7 @@ define_season <- function(target, date, season) {
 }
 
 #'
-#' @importFrom lubridate month
+#' @importFrom lubridate month interval %within%
 #'
 # define observations in each target
 define_interval <- function(target, date, settings) {
@@ -237,9 +237,7 @@ define_interval <- function(target, date, settings) {
     "baseline" = month(date) %in% settings$season,
     "annual" = month(date) %in% settings$season &
       year(date) == year(target),
-    floor_date(
-      date, unit = settings$unit, week_start = wday(date[1]) - 1
-    ) == target
+    date %within% interval(target, target + get(settings$unit)(1) - days(1))
   )
 
 }
