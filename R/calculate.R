@@ -83,10 +83,9 @@ calculate <- function(value,
   target <- define_target(date, resolution)
 
   # work out which dates line up with intervals defined by resolution
-  intervals <- lapply(target,
-                      define_interval,
-                      date = date,
-                      settings = resolution)
+  intervals <- define_interval(target,
+                               date = date,
+                               settings = resolution)
 
   # calculate `fun` for each survey year
   out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
@@ -231,14 +230,25 @@ define_season <- function(target, date, season) {
 # define observations in each target
 define_interval <- function(target, date, settings) {
 
-  switch(
-    settings$type,
-    "survey" = define_season(target, date, settings$season),
-    "baseline" = month(date) %in% settings$season,
-    "annual" = month(date) %in% settings$season &
-      year(date) == year(target),
-    date %within% interval(target, target + get(settings$unit)(1) - days(1))
+  # using loop to handle final case where we want to
+  #   run from target[i] to target[i + 1] - days(1)
+  out <- list()
+  target <- c(
+    target, target[[length(target)]] + get(settings$unit)(1) - days(1)
   )
+  for (i in seq_along(target)[-length(target)]) {
+    out[[i]] <- switch(
+      settings$type,
+      "survey" = define_season(target[[i]], date, settings$season),
+      "baseline" = month(date) %in% settings$season,
+      "annual" = month(date) %in% settings$season &
+        year(date) == year(target[[i]]),
+      date %within% interval(target[[i]], target[[i + 1]] - days(1))
+    )
+  }
+
+  # return
+  out
 
 }
 
