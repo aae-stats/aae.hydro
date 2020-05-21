@@ -233,9 +233,11 @@ define_interval <- function(target, date, settings) {
   # using loop to handle final case where we want to
   #   run from target[i] to target[i + 1] - days(1)
   out <- list()
-  target <- c(
-    target, target[[length(target)]] + get(settings$unit)(1)
-  )
+  if (length(target) > 0) {
+    target <- c(
+      target, target[[length(target)]] + get(settings$unit)(1)
+    )
+  }
   for (i in seq_along(target)[-length(target)]) {
     out[[i]] <- switch(
       settings$type,

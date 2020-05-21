@@ -21,21 +21,40 @@ calculate_manual <- function(value,
                              fun = median,
                              subset = NULL,
                              ...) {
+
+  # calculate fun on value by class
   out <- tapply(value, class, fun, ...)
+
+  # quick catch to return non-NA names in outputs
+  names_ok <- suppressWarnings(!is.na(as.numeric(names(out)[1])))
+  if (names_ok) {
+    names_out <- as.numeric(names(out))
+  } else {
+    names_out <- names(out)
+  }
+
+  # format in data.frame similar to calculate
   out <- data.frame(
-    date = as.numeric(names(out)),
+    date = names_out,
     metric = out
   )
   rownames(out) <- NULL
+
+  # subset if needed
   if (!is.null(subset)) {
     out <- out[out$date %in% subset, ]
     rownames(out) <- seq_len(nrow(out))
   }
+
+  # fill with NAs if subset extends beyond dates
   if (!all(subset %in% out$date)) {
     idx <- !(subset %in% out$date)
     out <- rbind(out, data.frame(date = subset[idx], metric = NA))
   }
+
+  # return
   out
+
 }
 
 test_that("calculate returns correct survey values with different seasons", {
@@ -344,7 +363,7 @@ test_that("calculate returns correct monthly values", {
 
 test_that("calculate returns correct values with lags", {
 
-  # weeks
+  # returns NA for when lagged data unavailable
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
@@ -353,15 +372,39 @@ test_that("calculate returns correct values with lags", {
       na.rm = TRUE
     )
   )
+  expect_equal(value$metric[1:3], as.numeric(rep(NA, 3)))
+
+  # and matches true data for lagged weeks (ignoring NAs)
   flow_tmp <- flow_sim %>% mutate(
     date = date + weeks(3)
   )
-  flow_tmp <- flow_tmp %>% filter(date == 2011)
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "weeks")
+    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) -1)
   )
-  expect_equal(value$metric, target$metric)
+  target$date <- as.Date(target$date)
+  expect_equal(value$metric[4:nrow(value)], target$metric[1:258])
+
+  # weeks with subset
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = weekly(lag = 3, subset = 2011),
+      na.rm = TRUE
+    )
+  )
+  flow_tmp <- flow_sim %>% mutate(
+    date = date + weeks(3)
+  )
+  interval_set <- interval(dmy("01-01-2011"), dmy("06-01-2012"))
+  flow_tmp <- flow_tmp %>% filter(date %within% interval_set)
+  target <- calculate_manual(
+    flow_tmp$value,
+    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1)
+  )
+  target$date <- as.Date(target$date)
+  expect_equal(value, target)
 
   # months
   value <- flow_sim %>% do(
@@ -372,11 +415,39 @@ test_that("calculate returns correct values with lags", {
       na.rm = TRUE
     )
   )
-  flow_tmp <- flow_sim %>%
-    filter(date %within% interval(ymd("2010-12-01"), ymd("2011-11-30")))
+  interval_set <- interval(dmy("01-12-2010"),
+                           dmy("30-11-2011"))
+  flow_tmp <- flow_sim %>% filter(date %within% interval_set)
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "months")
+    floor_date(flow_tmp$date, unit = "months", week_start = wday(flow_tmp$date[1]) - 1)
+  )
+  expect_equal(value$metric, target$metric)
+
+  # months lagged by days
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = monthly(lag = days(10), subset = 2011),
+      na.rm = TRUE
+    )
+  )
+  interval_set <- interval(dmy("01-01-2011"),
+                           dmy("01-01-2012"))
+  flow_tmp <- flow_sim %>% filter(date %within% interval_set)
+  target_list <- unique(floor_date(flow_tmp$date, unit = "months")) - days(10)
+  interval_list <- list()
+  for (i in seq_along(target_list)[-1])
+    interval_list[[i - 1]] <- interval(target_list[i - 1], (target_list[i] - days(1)))
+  interval_set <- interval(dmy("22-12-2010"),
+                           dmy("20-12-2011"))
+  flow_tmp <- flow_sim %>% filter(date %within% interval_set)
+  id <- lapply(interval_list, function(x) flow_tmp$date %within% x)
+  id <- mapply(function(x, y) x * y, id, seq_len(length(id)))
+  id <- apply(id, 1, sum)
+  target <- calculate_manual(
+    flow_tmp$value, id
   )
   expect_equal(value$metric, target$metric)
 
