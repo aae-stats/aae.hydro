@@ -108,7 +108,7 @@ weekly <- function(lag = 0, subset = NULL) {
 #'
 #' @export
 #'
-#' @importFrom lubridate is.period months
+#' @importFrom lubridate is.period
 #'
 monthly <- function(lag = 0, subset = NULL) {
 
