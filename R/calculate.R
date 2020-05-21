@@ -179,7 +179,9 @@ define_target <- function(date, settings) {
 
   # return minimal target based on type
   target <- unique(
-    floor_date(date, unit = settings$unit, week_start = wday(date[1]))
+    floor_date(
+      date, unit = settings$unit, week_start = (wday(date[1]) - 1)
+    )
   )
 
   # return output, dropping first year for survey calculations
@@ -230,7 +232,7 @@ define_interval <- function(target, date, settings) {
     "annual" = month(date) %in% settings$season &
       year(date) == year(target),
     floor_date(
-      date, unit = settings$unit, week_start = wday(date[1])
+      date, unit = settings$unit, week_start = wday(date[1]) - 1
     ) == target
   )
 
