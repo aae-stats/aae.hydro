@@ -79,15 +79,6 @@ calculate <- function(value,
     rescale_value <- value
   }
 
-  # reduce value and date to subset if required
-  if (!is.null(resolution$subset)) {
-    idx <- identify_subset(date, resolution)
-    date <- date[idx]
-    value <- value[idx]
-  }
-
-  # need to deal with lag if subset not specified
-
   # define minimal target, accounting for possible lag
   target <- define_target(date, resolution)
 
@@ -178,12 +169,23 @@ identify_subset <- function(date, settings) {
 # define level at which metric is calculated
 define_target <- function(date, settings) {
 
+  # reduce date to subset if required
+  if (!is.null(settings$subset)) {
+    idx <- identify_subset(date, settings)
+    date <- date[idx]
+  }
+
   # return minimal target based on type
   target <- unique(
     floor_date(
       date, unit = settings$unit, week_start = (wday(date[1]) - 1)
     )
   )
+
+  # remove any target points that fall beyond available dates
+  #   account for subsetting
+  idx <- target %within% interval(min(date), max(date))
+  target <- target[idx]
 
   # add lag at this point
   target <- target - settings$lag
@@ -243,11 +245,14 @@ define_interval <- function(target, date, settings) {
 }
 
 # return an output data.frame with appropriate dates
-format_output <- function(x, target, resolution) {
+format_output <- function(x, target, settings) {
+
+  # account for lag
+  target <- target + settings$lag
 
   # weekly and monthly metrics need more resolved dates
   date <- switch(
-    resolution$type,
+    settings$type,
     "weekly" = target,
     "monthly" = target,
     year(target)
