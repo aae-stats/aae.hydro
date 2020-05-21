@@ -223,12 +223,16 @@ define_season <- function(target, date, season) {
 # define observations in each target
 define_interval <- function(target, date, settings) {
 
-  switch(settings$type,
-         "survey" = define_season(target, date, settings$season),
-         "baseline" = month(date) %in% settings$season,
-         "annual" = month(date) %in% settings$season &
-                      year(date) == year(target),
-         floor_date(date, unit = settings$unit) == target)
+  switch(
+    settings$type,
+    "survey" = define_season(target, date, settings$season),
+    "baseline" = month(date) %in% settings$season,
+    "annual" = month(date) %in% settings$season &
+      year(date) == year(target),
+    floor_date(
+      date, unit = settings$unit, week_start = wday(date[1])
+    ) == target
+  )
 
 }
 
