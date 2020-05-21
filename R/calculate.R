@@ -165,7 +165,7 @@ identify_subset <- function(date, settings) {
 }
 
 #'
-#' @importFrom lubridate floor_date
+#' @importFrom lubridate floor_date wday
 #'
 # define level at which metric is calculated
 define_target <- function(date, settings) {
