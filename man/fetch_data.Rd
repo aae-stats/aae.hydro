@@ -66,10 +66,10 @@ Streamflow and related data (e.g. temperature) are recorded as
   Dates and variable names are interpreted loosely. Dates will recognise any
   of the following formats: \code{"ymd"}, \code{"dmy"}, \code{"y"},
   \code{"ymd_HMS"}, and \code{"ymd_HM"}. Variables will ignore case and
-  remove all spaces and underscores. Once tidied, any variable name containing
-  any of the following will be recognised: \code{"flow"}, \code{"discharge"},
-  \code{"depth"}, \code{"height"}, \code{"temp"}, \code{"cond"}, \code{"ox"},
-  \code{"do"}, and \code{"turb"}.
+  remove all spaces and underscores. Once tidied, any variable name
+  containing any of the following will be recognised: \code{"flow"},
+  \code{"discharge"}, \code{"depth"}, \code{"height"}, \code{"temp"},
+  \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
 
 tabulates data by QC code, with descriptions of each QC code.
 }

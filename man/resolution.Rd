@@ -31,8 +31,8 @@ metric should be calculated. Can be a continuous or discontinuous
 set of years}
 }
 \value{
-a list defining the resolution type, season (if relevant), lag, subset,
-  and appopriate units for use by \pkg{lubridate}.
+a list defining the resolution type, season (if relevant),
+  lag, subset, and appopriate units for use by \pkg{lubridate}.
 }
 \description{
 Functions to define temporal resolutions used in
