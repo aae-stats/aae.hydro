@@ -236,7 +236,7 @@ test_that("check_quality returns all QC values", {
   )
 
   qc <- check_quality(flow)
-  value <- levels(qc$quality_code)
+  value <- unique(qc$quality_code)
   expect_equal(value, c("149", "15", "150", "2", "50"))
 
 })

@@ -429,7 +429,9 @@ test_that("calculate returns correct values with lags", {
   flow_tmp <- flow_sim %>% filter(date %within% interval_set)
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "months", week_start = wday(flow_tmp$date[1]) - 1)
+    floor_date(flow_tmp$date,
+               unit = "months",
+               week_start = wday(flow_tmp$date[1]) - 1)
   )
   expect_equal(value$metric, target$metric)
 
@@ -784,4 +786,3 @@ test_that("rescale can be specified directly with informative errors", {
   )
 
 })
-
