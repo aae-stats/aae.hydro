@@ -342,7 +342,9 @@ test_that("calculate returns correct weekly values", {
   flow_tmp <- flow_sim %>% filter(date %within% interval_set)
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1)
+    floor_date(
+      flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1
+    )
   )
   expect_equal(value$metric, target$metric)
 
@@ -383,7 +385,9 @@ test_that("calculate returns correct values with lags", {
   )
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) -1)
+    floor_date(
+      flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1
+    )
   )
   target$date <- as.Date(target$date)
   expect_equal(value$metric[4:nrow(value)], target$metric[1:258])
@@ -404,7 +408,9 @@ test_that("calculate returns correct values with lags", {
   flow_tmp <- flow_tmp %>% filter(date %within% interval_set)
   target <- calculate_manual(
     flow_tmp$value,
-    floor_date(flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1)
+    floor_date(
+      flow_tmp$date, unit = "weeks", week_start = wday(flow_tmp$date[1]) - 1
+    )
   )
   target$date <- as.Date(target$date)
   expect_equal(value, target)
@@ -441,8 +447,10 @@ test_that("calculate returns correct values with lags", {
   flow_tmp <- flow_sim %>% filter(date %within% interval_set)
   target_list <- unique(floor_date(flow_tmp$date, unit = "months")) - days(10)
   interval_list <- list()
-  for (i in seq_along(target_list)[-1])
-    interval_list[[i - 1]] <- interval(target_list[i - 1], (target_list[i] - days(1)))
+  for (i in seq_along(target_list)[-1]) {
+    interval_list[[i - 1]] <-
+      interval(target_list[i - 1], (target_list[i] - days(1)))
+  }
   interval_set <- interval(dmy("22-12-2010"),
                            dmy("20-12-2011"))
   flow_tmp <- flow_sim %>% filter(date %within% interval_set)
@@ -776,3 +784,4 @@ test_that("rescale can be specified directly with informative errors", {
   )
 
 })
+

@@ -126,8 +126,10 @@ calculate <- function(value,
                                         settings = baseline_settings)
 
     # now calculate `fun` for what's left
-    baseline <- do.call(rescale$fun,
-                        c(list(rescale_value[rescale_interval[[1]]]), rescale$args))
+    baseline <- do.call(
+      rescale$fun,
+      c(list(rescale_value[rescale_interval[[1]]]), rescale$args)
+    )
 
     # and rescale output
     out <- out / baseline
