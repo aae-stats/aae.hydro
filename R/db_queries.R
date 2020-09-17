@@ -19,7 +19,7 @@ NULL
 #'   Queensland
 #'
 #' @details \code{list_variables} queries the WMIS database to identify all
-#'   variables avaiable at a given site.
+#'   variables available at a given site.
 #'
 #' @return a \code{data.frame} containing information on variables and
 #'   data sources at each site.
@@ -47,6 +47,9 @@ list_variables <- function(sites, data_source = NULL, state = "vic") {
   # parse state
   state <- parse_state(state)
 
+  # get database address
+  address <- get_address(state)
+
   # find all available datasources by site
   if (is.null(data_source))
     data_source <- list_datasources(sites, state = state)$datasources
@@ -67,8 +70,7 @@ list_variables <- function(sites, data_source = NULL, state = "vic") {
     )
 
     # send query
-    response <- GET("http://data.water.vic.gov.au/cgi/webservice.pl",
-                    query = query)
+    response <- GET(address, query = query)
 
     # convert output into a readable table
     tmp <- format_json_vars(response)
@@ -284,7 +286,7 @@ query_database <- function(sites,
 get_address <- function(state) {
   switch(
     state,
-    "nsw" = "https://realtimedata.waternsw.com.au/cgi/webservice.exe",
+    "nsw" = "https://realtimedata.waternsw.com.au/cgi/webservice.pl",
     "qld" = "https://water-monitoring.information.qld.gov.au/cgi/webservice.pl",
     "http://data.water.vic.gov.au/cgi/webservice.pl"
   )
