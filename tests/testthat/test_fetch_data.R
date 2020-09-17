@@ -1,4 +1,4 @@
-# test the fetch_data function does what it says and gives useful warnings
+# test the fetch_hydro function does what it says and gives useful warnings
 # and errors
 
 # setup: load some packages
@@ -11,7 +11,7 @@ gauge_list <- c(225200, 405202, 406201, 409200)
 data_list <- lapply(
   gauge_list,
   function(x) read.csv(
-    system.file("testdata", paste0(x, ".csv"), package = "aae.data")
+    system.file("testdata", paste0(x, ".csv"), package = "aae.hydro")
   )
 )
 data_list <- lapply(
@@ -25,11 +25,11 @@ date_range <- lapply(
 )
 
 # test basic data downloads against manually downloaded data
-test_that("fetch_data returns correct values", {
+test_that("fetch_hydro returns correct values", {
 
   # download data for sites and date ranges specified above
   fetched_data <- mapply(
-    function(x, y) fetch_data(
+    function(x, y) fetch_hydro(
       sites = x,
       start = y[1],
       end = y[2],
@@ -63,16 +63,16 @@ test_that("fetch_data returns correct values", {
 })
 
 # check dims of output when include_missing is TRUE/FALSE
-test_that("include_missing works correctly in fetch_data", {
+test_that("include_missing works correctly in fetch_hydro", {
 
   # checks gap filling when multiple sites have inconsistent data availability
-  with_missing <- fetch_data(
+  with_missing <- fetch_hydro(
     sites = gauge_list[1],
     start = "2017-09-29", end = "2017-10-02",
     variables = c("flow", "temp"),
     include_missing = TRUE
   )
-  without_missing <- fetch_data(
+  without_missing <- fetch_hydro(
     sites = gauge_list[1],
     start = "2017-09-29", end = "2017-10-02",
     variables = c("flow", "temp"),
@@ -96,7 +96,7 @@ test_that("include_missing works correctly in fetch_data", {
 test_that("var_list works when varfrom equals varto", {
 
   # all vars that don't require conversion
-  direct_spec_string <- fetch_data(
+  direct_spec_string <- fetch_hydro(
     sites = gauge_list[1],
     start = "2011-02-01", end = "2011-02-05",
     variables = c("do", "depth"),
@@ -104,7 +104,7 @@ test_that("var_list works when varfrom equals varto", {
   )
 
   # directly specifying varfrom and varto
-  direct_spec_num <- fetch_data(
+  direct_spec_num <- fetch_hydro(
     sites = gauge_list[1],
     start = "2017-09-29", end = "2017-10-02",
     include_missing = TRUE,
@@ -115,11 +115,11 @@ test_that("var_list works when varfrom equals varto", {
 })
 
 # check options errors correctly if db settings are inappopriate
-test_that("fetch_data errors when options are inappropriate", {
+test_that("fetch_hydro errors when options are inappropriate", {
 
   # wrong interval specification
   expect_error(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1],
       start = "2017-09-29", end = "2017-10-02",
       variables = c("temp"),
@@ -130,7 +130,7 @@ test_that("fetch_data errors when options are inappropriate", {
   )
 
   expect_error(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1],
       start = "2017-09-29", end = "2017-10-02",
       variables = c("temp"),
@@ -143,11 +143,11 @@ test_that("fetch_data errors when options are inappropriate", {
 })
 
 # check warnings and errors come up appropriately
-test_that("fetch_data messages, warns, and errors informatively", {
+test_that("fetch_hydro messages, warns, and errors informatively", {
 
   # check message for fully missing data on download
   expect_message(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1],
       start = date_range[[1]][1], end = date_range[[1]][2],
       variables = c("flow", "temp"),
@@ -158,7 +158,7 @@ test_that("fetch_data messages, warns, and errors informatively", {
 
   # check message for partially missing data on download
   expect_message(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1],
       start = "1992-04-25", end = "1992-05-02",
       variables = c("flow"),
@@ -169,7 +169,7 @@ test_that("fetch_data messages, warns, and errors informatively", {
 
   # check message for partial and fully missing data on download
   expect_message(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1],
       start = "1992-04-25", end = "1992-05-02",
       variables = c("flow", "temp"),
@@ -181,7 +181,7 @@ test_that("fetch_data messages, warns, and errors informatively", {
 
   # check message for multiple sites
   expect_message(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1:3],
       start = "1975-06-11", end = "1975-06-13",
       variables = c("flow"),
@@ -194,7 +194,7 @@ test_that("fetch_data messages, warns, and errors informatively", {
 
   # check message for list_variables call
   expect_message(
-    fetch_data(
+    fetch_hydro(
       sites = gauge_list[1:3],
       start = "1975-06-11", end = "1975-06-13",
       variables = c("flow"),
@@ -228,7 +228,7 @@ test_that("list_variables returns all data sources and variables", {
 # make sure check_quality catches all unique QC values
 test_that("check_quality returns all QC values", {
 
-  flow <- fetch_data(
+  flow <- fetch_hydro(
     sites = gauge_list[1],
     start = date_range[[1]][1], end = date_range[[1]][2],
     variables = c("flow", "temp"),

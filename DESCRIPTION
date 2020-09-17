@@ -1,4 +1,4 @@
-Package: aae.data
+Package: aae.hydro
 Type: Package
 Title: Download and Summarise Streamflow Data in R
 Version: 0.0.0.9000
@@ -15,9 +15,9 @@ Maintainer: Jian Yen <jdl.yen@gmail.com>
 Description: A tool to access streamflow data and associated data from
     the Victorian Water Measurement Information System, with customisable
     functions to calculate summary metrics at any resolution.
-License: file LICENSE
-URL: https://github.com/aae.stats/aae.data
-BugReports: https://github.com/aae.stats/aae.data/issues
+License: Apache License 2.0 + file LICENSE
+URL: https://github.com/aae.stats/aae.hydro
+BugReports: https://github.com/aae.stats/aae.hydro/issues
 Encoding: UTF-8
 LazyData: true
 Depends:

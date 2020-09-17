@@ -1,13 +1,13 @@
-citHeader("To cite aae.data in publications use:")
+citHeader("To cite aae.hydro in publications use:")
 
 citEntry(entry = "Misc",
-  title        = "{aae.data}: Download and Summarise Streamflow Data in R",
+  title        = "{aae.hydro}: Download and Summarise Streamflow Data in R",
   author       = personList(as.person("Jian D. L. Yen")),
-  url          = "https://github.com/aae.stats/aae.data",
+  url          = "https://github.com/aae-stats/aae.hydro",
 
   textVersion  =
   paste("Jian D. L. Yen (2020).",
-        "aae.data: download and summarise streamflow data in R.",
+        "aae.hydro: download and summarise streamflow data in R.",
         "R package.",
-        "Available at: https://github.com/aae.stats/aae.data.")
+        "Available at: https://github.com/aae-stats/aae.hydro.")
 )

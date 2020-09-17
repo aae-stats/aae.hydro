@@ -2,7 +2,7 @@
 #' @title Calculate custom metrics from streamflow data
 #' @description Calculate metrics at different temporal resolutions and with
 #'   different lags from streamflow or related data downloaded with
-#'   \code{fetch_data}.
+#'   \code{fetch_hydro}.
 NULL
 
 #' @rdname calculate
@@ -20,7 +20,7 @@ NULL
 #'   calculations. See \link{resolution}.
 #' @param fun a function (unquoted) used to calculate the final metric. Defaults
 #'   to \code{median} but any R function that returns a single numeric value
-#'   will work. The \pkg{aae.data} provides three additional options:
+#'   will work. The \pkg{aae.hydro} provides three additional options:
 #'   \code{days_below}, \code{days_above}, and \code{rolling_range}
 #' @param rescale a logical or function specifying the how a metric should be
 #'   rescaled following calculation. Defaults to NULL, in which case the output

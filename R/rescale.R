@@ -74,7 +74,7 @@ by_max <- function(subset, season = 1:12, ...) {
 #'
 #' @param fun a function (unquoted) used to calculate the final metric. Defaults
 #'   to \code{median} but any R function that returns a single numeric value
-#'   will work. The \pkg{aae.data} provides three additional options:
+#'   will work. The \pkg{aae.hydro} provides three additional options:
 #'   \code{days_below}, \code{days_above}, and \code{rolling_range}
 #'
 by_generic <- function(subset, season = 1:12, fun = median, ...) {

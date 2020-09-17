@@ -1,4 +1,4 @@
 library(testthat)
-library(aae.data)
+library(aae.hydro)
 
-test_check("aae.data")
+test_check("aae.hydro")

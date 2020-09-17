@@ -16,17 +16,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Getting started
 
-Start by loading the `aae.data` package and downloading some data to work with.
+Start by loading the `aae.hydro` package and downloading some data to work with.
 
 ```{r getting-started}
 # load some packages we'll use
-library(aae.data)
+library(aae.hydro)
 library(lubridate)
 library(dplyr)
 library(tidyr)
 
 # get some data to work with in the vignette
-flow_data <- fetch_data(
+flow_data <- fetch_hydro(
   sites = c("405232", "406201", "406202", "406276", "406278"),
   start = "2004-01-01",
   end = "2020-04-21",
@@ -43,7 +43,7 @@ flow_wide <- flow_data %>% pivot_wider(
 
 ## Summarising flow data
 
-Once we have access to flow data, the next challenge is to convert flow data into relevant metrics or summary statistics. The `aae.data` package aims to make this easy with a single function: `calculate`. The `calculate` function takes data on any variable, along with dates of observations, and summarises this at a resolution of your choosing. Some examples might make this clearer.
+Once we have access to flow data, the next challenge is to convert flow data into relevant metrics or summary statistics. The `aae.hydro` package aims to make this easy with a single function: `calculate`. The `calculate` function takes data on any variable, along with dates of observations, and summarises this at a resolution of your choosing. Some examples might make this clearer.
 
 ```{r calculate-basic-examples}
 # first, pull out the data for a single site (Goulburn @ McCoys Bridge)

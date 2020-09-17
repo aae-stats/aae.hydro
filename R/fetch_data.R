@@ -1,10 +1,10 @@
-#' @name fetch_data
+#' @name fetch_hydro
 #' @title Download data from Victorian WMIS
 #' @description Download data from the Victorian Water Measurement
 #'   Information System (WMIS) for one or more variables at one or more sites.
 NULL
 
-#' @rdname fetch_data
+#' @rdname fetch_hydro
 #'
 #' @export
 #'
@@ -51,7 +51,7 @@ NULL
 #' \dontrun{
 #'
 #' # grab data for three variables at three sites
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "2004-01-01",
 #'   end = "2020-04-21",
@@ -59,7 +59,7 @@ NULL
 #' )
 #'
 #' # try a different date range
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "1991-01-01",
 #'   end = "1993-04-21",
@@ -67,7 +67,7 @@ NULL
 #' )
 #'
 #' # or a different date format
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "01-01-1994",
 #'   end = "1996",
@@ -75,7 +75,7 @@ NULL
 #' )
 #'
 #' # repeat, but fill gaps with placeholders
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "2004-01-01",
 #'   end = "2020-04-21",
@@ -84,7 +84,7 @@ NULL
 #' )
 #'
 #' # check for data from the telemetry data source
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "2004-01-01",
 #'   end = "2020-04-21",
@@ -94,7 +94,7 @@ NULL
 #'
 #' # advanced options: return weekly median values
 #' #   rather than daily mean values
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "2004-01-01",
 #'   end = "2020-04-21",
@@ -107,7 +107,7 @@ NULL
 #'
 #' # advanced options: specify variables explicitly
 #' #   by WMIS codes
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "2004-01-01",
 #'   end = "2020-04-21",
@@ -120,7 +120,7 @@ NULL
 #'
 #' }
 #'
-fetch_data <- function(sites, start, end, variables,
+fetch_hydro <- function(sites, start, end, variables,
                        include_missing = FALSE,
                        options = list(),
                        data_source = "A") {
@@ -657,11 +657,11 @@ expand_missing <- function(data, start, end) {
 
 }
 
-#' @rdname fetch_data
+#' @rdname fetch_hydro
 #'
 #' @export
 #'
-#' @param data a \code{data.frame} returned by \code{fetch_data}
+#' @param data a \code{data.frame} returned by \code{fetch_hydro}
 #'
 #' @details tabulates data by QC code, with descriptions of each QC code.
 #'
@@ -669,7 +669,7 @@ expand_missing <- function(data, start, end) {
 #' \dontrun{
 #'
 #' # download some flow data
-#' flow_data <- fetch_data(
+#' flow_data <- fetch_hydro(
 #'   sites = c("405232", "406276", "406278"),
 #'   start = "1991-01-01",
 #'   end = "1993-04-21",
