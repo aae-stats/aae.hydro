@@ -11,7 +11,7 @@ You can install the `aae.hydro` package from GitHub. Although the package doesn'
 install.packages("remotes")
 
 # install the aae.hydro package from GitHub
-remotes::install_github("aae.stats/aae.hydro@master", build_vignettes = TRUE)
+remotes::install_github("aae.stats/aae.hydro")
 ```
 
 Once completed, you should be able to load the `aae.hydro` package with `library(aae.hydro)`.
@@ -33,11 +33,14 @@ library(aae.hydro)
 # `start` and `end` bound the dates we want, in any reasonable format (yyyy-mm-dd, dd-mm-yy, etc.).
 # `variables` define the variables we want, with somewhat flexible names (e.g. discharge, streamflow,
 #   flow, temp, temperature, water_temperature). Can define variables by WMIS code if you know it.
+# `state` specifies whether we want data from Victoria, New South Wales, or Queensland. Will be
+#   matched partially and is not case-sensitive (e.g. "VIC", "Victoria", and "vic" are equivalent).
 flow_data <- fetch_hydro(
   sites = c("405232", "406201", "406202", "406276", "406278"),
   start = "2004-01-01",
   end = "2020-04-21",
-  variables = c("flow", "temp", "depth")
+  variables = c("flow", "temp", "depth"),
+  state = "vic"
 )
 ```
 
