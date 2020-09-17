@@ -6,9 +6,9 @@
 \alias{list_datasources}
 \title{Interact with WMIS database from R}
 \usage{
-list_variables(sites, data_source = NULL)
+list_variables(sites, data_source = NULL, state = "vic")
 
-list_datasources(sites)
+list_datasources(sites, state = "vic")
 }
 \arguments{
 \item{sites}{a character or numeric vector of site codes (gauge numbers)}
@@ -17,6 +17,9 @@ list_datasources(sites)
 NULL, which will check all available data sources. The
 \code{list_datasources} function lists all available data_sources for
 a given site}
+
+\item{state}{state of interest; one of Victoria, New South Wales, or
+Queensland}
 }
 \value{
 a \code{data.frame} containing information on variables and

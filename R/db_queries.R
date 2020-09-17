@@ -15,6 +15,8 @@ NULL
 #'   NULL, which will check all available data sources. The
 #'   \code{list_datasources} function lists all available data_sources for
 #'   a given site
+#' @param state state of interest; one of Victoria, New South Wales, or
+#'   Queensland
 #'
 #' @details \code{list_variables} queries the WMIS database to identify all
 #'   variables avaiable at a given site.
@@ -40,11 +42,14 @@ NULL
 #'     sites = c("405232", "406276", "406278"),
 #'   )
 #' }
-list_variables <- function(sites, data_source = NULL) {
+list_variables <- function(sites, data_source = NULL, state = "vic") {
+
+  # parse state
+  state <- parse_state(state)
 
   # find all available datasources by site
   if (is.null(data_source))
-    data_source <- list_datasources(sites)$datasources
+    data_source <- list_datasources(sites, state = state)$datasources
 
   data_source <- unique(unlist(data_source))
 
@@ -92,7 +97,13 @@ list_variables <- function(sites, data_source = NULL) {
 #'
 #' @return a \code{list} containing information on data sources at each site.
 #'
-list_datasources <- function(sites) {
+list_datasources <- function(sites, state = "vic") {
+
+  # parse state
+  state <- parse_state(state)
+
+  # get database address
+  address <- get_address(state)
 
   # create a query string that `GET` can interpret
   query <- paste0(
@@ -102,8 +113,7 @@ list_datasources <- function(sites) {
   )
 
   # send query
-  response <- GET("http://data.water.vic.gov.au/cgi/webservice.pl",
-                  query = query)
+  response <- GET(address, query = query)
 
   # return as unformatted list
   fromJSON(content(response, as = "text"))$return$sites
@@ -114,10 +124,10 @@ list_datasources <- function(sites) {
 #' @importFrom lubridate ymd_hms %--% %within% int_overlaps
 #'
 # check whether a variable is available at a site in some given dates
-check_available <- function(sites, start, end, variables, data_source) {
+check_available <- function(sites, start, end, variables, data_source, state) {
 
   # which variables are available at that site?
-  var_list <- list_variables(sites, data_source)
+  var_list <- list_variables(sites, data_source = data_source, state = state)
 
   # work out how many checks we need to do
   nsite <- length(sites)
@@ -220,12 +230,16 @@ format_json_vars <- function(response) {
 #' @importFrom httr GET
 #'
 # prepare and submit query to WMIS
-query_database <- function(address, sites,
+query_database <- function(sites,
                            start, end,
                            varfrom, varto,
                            options,
                            data_source,
+                           state,
                            var_list = NULL) {
+
+  # get database address
+  address <- get_address(state)
 
   # define the query
   if (is.null(var_list)) {
@@ -265,6 +279,17 @@ query_database <- function(address, sites,
   response <- GET(address, query = query)
 
 }
+
+# get database address from state
+get_address <- function(state) {
+  switch(
+    state,
+    "nsw" = "https://realtimedata.waternsw.com.au/cgi/webservice.exe",
+    "qld" = "https://water-monitoring.information.qld.gov.au/cgi/webservice.pl",
+    "http://data.water.vic.gov.au/cgi/webservice.pl"
+  )
+}
+
 
 #'
 #' @importFrom jsonlite fromJSON

@@ -4,7 +4,6 @@
 #'   standardise metrics in \code{calculate}.
 NULL
 
-
 #' @rdname rescale
 #'
 #' @export
