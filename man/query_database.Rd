@@ -33,7 +33,7 @@ Functions to prepare and submit queries to the Victorian
 }
 \details{
 \code{list_variables} queries the WMIS database to identify all
-  variables avaiable at a given site.
+  variables available at a given site.
 
 \code{list_datasources} queries the WMIS database to identify all
   data sources avaiable at a given site.

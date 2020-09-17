@@ -720,6 +720,8 @@ check_quality <- function(data) {
 
   # running list of qc codes
   code_list <- list(
+
+    # VIC
     "1" = "Unedited data",
     "2" = "Good quality, minimal editing required. Drift correction",
     "3" = "Used only by TELEM data",
@@ -742,7 +744,15 @@ check_quality <- function(data) {
     "170" = "Raw unedited data from secondary/backup sensor",
     "180" = "Data not recorded, equipment malfunction",
     "250" = "Rating table suspended",
-    "255" = "Missing data"
+    "255" = "Missing data",
+
+    # QLD
+    "20" = "Fair",
+    "30" = "Poor",
+
+    # NSW
+    "34" = "Pre 21 Aug 2004 - RATINGS - Good record where >= 5 gaugings, 95% within 10% curve",
+    "41" = "Pre 21 Aug 2004 - RATINGS/TS - Fair measured data"
   )
 
   # and what should we do with each code?
@@ -753,6 +763,10 @@ check_quality <- function(data) {
     "10" = "Use",
     "11" = "Use with caution",
     "15" = "Use",
+    "20" = "Use with caution",
+    "30" = "Use with caution",
+    "34" = "Use with caution",
+    "41" = "Use",
     "50" = "Use with caution",
     "76" = "Use with caution",
     "77" = "Use with caution",
