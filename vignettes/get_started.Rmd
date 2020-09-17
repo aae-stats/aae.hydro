@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## We have access to lots of data
 
-We have so much data. But it's hard to navigate and work with everything, especially when we want to bring together data from different places. The `aae.hydro` R package is an attempt to simplify this process. The main aim of the package is to provide an interface among databases and data sets, not to recreate any one database. It's a work in progress, currently focused on streamflow data. Down the track, it'd be great to include any and all AAE data sets that exist.
+We have so much data. But it's hard to navigate and work with everything, especially when we want to bring together data from different places. The `aae.hydro` R package is an attempt to simplify this process. The main aim of the package is to provide an interface to publicly available streamflow data. Down the track, the goal is to link `aae.hydro` with other packages to access data collected, curated, or regularly used by AAE staff.
 
 ## Installing the package
 
