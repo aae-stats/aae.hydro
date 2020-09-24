@@ -11,6 +11,7 @@ fetch_hydro(
   end,
   variables,
   include_missing = FALSE,
+  include_qc = FALSE,
   options = list(),
   data_source = "A",
   state = "vic"
@@ -33,6 +34,10 @@ WMIS variable codes will work.}
 
 \item{include_missing}{a \code{logical} defining whether to pad output data
 to include dates where data are missing}
+
+\item{include_qc}{a \code{logical} defining whether to return information on
+quality control values. This information can be retrieved with
+\link{check_quality}}
 
 \item{options}{a \code{list} specifying one of four advanced options:
 - the interval type (defaults to "daily") for calculation of downloaded

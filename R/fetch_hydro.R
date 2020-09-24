@@ -18,6 +18,9 @@ NULL
 #'    WMIS variable codes will work.
 #' @param include_missing a \code{logical} defining whether to pad output data
 #'   to include dates where data are missing
+#' @param include_qc a \code{logical} defining whether to return information on
+#'   quality control values. This information can be retrieved with
+#'   \link{check_quality}
 #' @param options a \code{list} specifying one of four advanced options:
 #'    - the interval type (defaults to "daily") for calculation of downloaded
 #'      values
@@ -124,6 +127,7 @@ NULL
 #'
 fetch_hydro <- function(sites, start, end, variables,
                         include_missing = FALSE,
+                        include_qc = FALSE,
                         options = list(),
                         data_source = "A",
                         state = "vic") {
@@ -224,6 +228,10 @@ fetch_hydro <- function(sites, start, end, variables,
 
   }
 
+  # do we want to keep qc info?
+  if (!include_qc)
+    output <- output[, !grepl("quality_reference", colnames(output))]
+
   # expand around missing observations
   if (include_missing)
     output <- expand_missing(output, dates$start, dates$end)
@@ -321,6 +329,7 @@ parse_variables <- function(variables, sites, start, end, data_source, state) {
   variables <- tolower(variables)
   variables[grep("flow", variables)] <- "discharge"
   variables[grep("depth|height", variables)] <- "depth"
+  variables[grep("storage|dam|level", variables)] <- "storage_water_level"
   variables[grep("temp", variables)] <- "temperature"
   variables[grep("cond", variables)] <- "conductivity"
   variables[grep("ox|do", variables)] <- "dissolvedoxygen"
@@ -340,6 +349,7 @@ parse_variables <- function(variables, sites, start, end, data_source, state) {
     varfrom[i] <- switch(
       var_tmp,
       "depth" = "100.00",
+      "storage_water_level" = "130.00",
       "discharge" = "141.00",
       "dissolvedoxygen" = "215.00",
       "temperature" = "450.00",
