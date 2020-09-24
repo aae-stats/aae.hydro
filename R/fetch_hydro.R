@@ -234,7 +234,7 @@ fetch_hydro <- function(sites, start, end, variables,
 
   # expand around missing observations
   if (include_missing)
-    output <- expand_missing(output, dates$start, dates$end)
+    output <- expand_missing(output, dates$start, dates$end, include_qc)
 
   # check if vicwater has included missing data with a value (usually 0.0)
   missing_with_value <- output$quality_code >= 250 & !is.na(output$value)
@@ -242,7 +242,10 @@ fetch_hydro <- function(sites, start, end, variables,
 
     # make output columns slightly more informative
     output$value[missing_with_value] <- NA
-    output$quality_reference_255[missing_with_value] <- "Missing data"
+
+    # add qc info if required
+    if (include_qc)
+      output$quality_reference_255[missing_with_value] <- "Missing data"
 
     # remove these if !include_missing
     if (!include_missing)
@@ -615,7 +618,7 @@ fill_missing <- function(dates, varfrom, varto, sites) {
 #' @importFrom lubridate ymd_hms int_length int_diff
 #'
 # expand data set to include rows for unavailable dates
-expand_missing <- function(data, start, end) {
+expand_missing <- function(data, start, end, include_qc) {
 
   # reformat dates with useful format
   start_formatted <- ymd_hms(start)
@@ -693,6 +696,10 @@ expand_missing <- function(data, start, end) {
     }
 
   }
+
+  # remove qc info if not required
+  if (!include_qc)
+    data <- data[, !grepl("quality_reference_255", colnames(data))]
 
   # finalise by sorting data by date within variable
   data <- data[order(data$variable_code, data$site_code, data$date_formatted), ]
