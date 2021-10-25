@@ -8,13 +8,29 @@ NULL
 #'
 #' @export
 #'
-# #' @importFrom stats median
+#' @param x kdjf
+#' @param source dkjf
+#' @param threshold kdjfd
 #'
-# #' @param subset a numeric vector defining years in which the metric
+#' @return a data.frame
 #'
-# #' @return a list
+impute_year <- function(x, source = NULL, threshold = 100) {
+
+  NULL
+
+}
+
+#' @rdname impute
 #'
-impute_hydro <- function(x, y, method) {
+#' @export
+#'
+#' @param x kdjf
+#' @param n dkjf
+#' @param fun kdjfd
+#'
+#' @return a data.frame
+#'
+impute_rolling <- function(x, n = 5, fun = median) {
 
   NULL
 
