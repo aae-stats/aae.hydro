@@ -713,6 +713,95 @@ test_that("calculate returns correct values with truncation", {
 
 })
 
+test_that("calculate selects correct default truncation dates", {
+
+  # check season starting late in the previous calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 12:18, lag = 0, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= dmy(paste0("01-12-", year(survey_dates[i]) - 1L)) &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check season starting in second calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 14:18, lag = 0, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= dmy(paste0("01-02-", year(survey_dates[i]))) &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check season starting early in first calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 3:18, lag = 0, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= dmy(paste0("01-03-", year(survey_dates[i]) - 1L)) &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check season ending in first calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 3:12, lag = 0, start = trigger_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(trigger_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= dmy(paste0("31-12-", year(survey_dates[i]) - 1L))
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check season ending late in second calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 3:24, lag = 0, start = trigger_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(trigger_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= dmy(paste0("31-12-", year(survey_dates[i])))
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+})
+
 test_that("calculate returns correct values with rescaling", {
 
   # annual values rescaled by long-term median in all months
