@@ -9,13 +9,13 @@
 \alias{baseline}
 \title{Functions to define resolutions for metric calculations}
 \usage{
-survey(season = 1:12, lag = 0, subset = NULL)
+survey(season = 1:12, lag = 0, subset = NULL, start = NULL, end = NULL)
 
 weekly(lag = 0, subset = NULL)
 
 monthly(lag = 0, subset = NULL)
 
-annual(season = 1:12, lag = 0, subset = NULL)
+annual(season = 1:12, lag = 0, subset = NULL, start = NULL, end = NULL)
 
 baseline(season = 1:12, subset = NULL)
 }
@@ -29,10 +29,18 @@ using the methods in \pkg{lubridate} (see details)}
 \item{subset}{a numeric vector defining years in which the
 metric should be calculated. Can be a continuous or discontinuous
 set of years}
+
+\item{start}{a vector of start dates specifying when to begin calculating
+metrics if this start date is after the first day of a specified season
+(see details)}
+
+\item{end}{a vector of end dates specifying when to end calculation of
+metrics if this end date is before the final day of a specified season
+(see details)}
 }
 \value{
 a list defining the resolution type, season (if relevant),
-  lag, subset, and appopriate units for use by \pkg{lubridate}.
+  lag, subset, and appropriate units for use by \pkg{lubridate}.
 }
 \description{
 Functions to define temporal resolutions used in
@@ -52,4 +60,13 @@ The \code{survey} function defines seasons relative to
   defaults to \code{weeks} for the \code{weekly} function. The \code{lag}
   argument is also used in \code{rolling_range}, where it defaults to the
   unit of measurement in the input data (days, in most cases).
+
+  The \code{truncation} argument is experimental but is intended to
+  remove the leading or trailing days of a season. A common use-case
+  is when metrics need to ignore days after some event (e.g. a field
+  survey), when this event occurs before the final day of a specified season.
+  Truncation can only be used with \code{survey} and \code{annual}
+  resolutions. Truncation overwrites all other target date specifications,
+  so that one value will be returned for each element of \code{start}
+  or \code{end}.
 }

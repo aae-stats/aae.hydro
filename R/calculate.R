@@ -66,12 +66,14 @@ NULL
 #' # example of multiple metrics with dplyr
 #'
 #' }
-calculate <- function(value,
-                      date,
-                      resolution,
-                      fun = median,
-                      rescale = NULL,
-                      ...) {
+calculate <- function(
+  value,
+  date,
+  resolution,
+  fun = median,
+  rescale = NULL,
+  ...
+) {
 
   # make copy of dates for rescale if needed
   if (!is.null(rescale)) {
@@ -83,9 +85,11 @@ calculate <- function(value,
   target <- define_target(date, resolution)
 
   # work out which dates line up with intervals defined by resolution
-  intervals <- define_interval(target,
-                               date = date,
-                               settings = resolution)
+  intervals <- define_interval(
+    target,
+    date = date,
+    settings = resolution
+  )
 
   # calculate `fun` for each survey year
   out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
@@ -109,8 +113,10 @@ calculate <- function(value,
     }
 
     # define settings for baseline calculation
-    baseline_settings <- baseline(season = rescale$season,
-                                  subset = rescale$subset)
+    baseline_settings <- baseline(
+      season = rescale$season,
+      subset = rescale$subset
+    )
 
     # reduce value and date to subset if required
     if (!is.null(rescale$subset)) {
@@ -121,9 +127,11 @@ calculate <- function(value,
 
     # now calculate the target for baseline calculation
     rescale_target <- define_target(rescale_date, settings = baseline_settings)
-    rescale_interval <- define_interval(rescale_target,
-                                        date = rescale_date,
-                                        settings = baseline_settings)
+    rescale_interval <- define_interval(
+      rescale_target,
+      date = rescale_date,
+      settings = baseline_settings
+    )
 
     # now calculate `fun` for what's left
     baseline <- do.call(
@@ -236,18 +244,100 @@ define_interval <- function(target, date, settings) {
 
   # using loop to handle final case where targets are linked
   if (settings$type %in% c("survey", "baseline", "annual")) {
-    out <- lapply(
-      target,
-      function(x, y, z) switch(
-        settings$type,
-        "survey" = define_season(x, y, z$season),
-        "baseline" = month(y) %in% z$season,
-        "annual" = month(y) %in% z$season &
-          year(y) == year(x)
-      ),
-      y = date, z = settings
-    )
+
+    # easy if not truncating leading/trailing observations
+    if (is.null(settings$start) & is.null(settings$end)) {
+
+      out <- lapply(
+        target,
+        function(x, y, z) switch(
+          settings$type,
+          "survey" = define_season(x, y, z$season),
+          "baseline" = month(y) %in% z$season,
+          "annual" = month(y) %in% z$season &
+            year(y) == year(x)
+        ),
+        y = date, z = settings
+      )
+
+    } else {
+
+      # slightly more complicated otherwise, need to
+      #   define each interval individually
+
+      # fill with earliest possible date (based on years included in end)
+      #    if start not provided
+      if (is.null(settings$start)) {
+
+        # need to account for end dates before end of calendar year
+        start_year <- year(settings$end)
+        if (settings$type == "survey" & min(settings$season) <= 12L)
+          start_year[month(settings$end) < 7L] <- start_year - 1L
+
+        # and deal with seasons in the 13:24 range
+        start_season <- min(settings$season)
+        if (start_season > 12L)
+          start_season <- start_season - 12L
+
+        # can then paste together a minimum start date
+        settings$start <- dmy(paste("01", start_season, start_year, sep = "-"))
+
+      }
+
+      # fill with latest possible date (based on years included in start)
+      #   if end not provided
+      if (is.null(settings$end)) {
+
+        # need to account for start dates in second calendar year under
+        #   survey resolutions (assuming seasons extend to second calendar year)
+        end_year <- year(settings$start)
+        if (settings$type == "survey" & max(settings$season) > 12L)
+          end_year[month(settings$start) >= 7L] <- end_year + 1L
+
+        # and deal with seasons in the 13:24 range
+        end_season <- max(settings$season)
+        if (end_season > 12L)
+          end_season <- end_season - 12L
+
+        # can then paste together a maximum end date
+        settings$end <- dmy(paste(days_in_month(end_season), end_season, end_year, sep = "-"))
+
+      }
+
+      # deal with lag because it's not yet handled for start/end dates
+      settings$start <- settings$start - settings$lag
+      settings$end <- settings$end - settings$lag
+
+      # now throw a warning if start or end dates sit outside of
+      #   available data
+      if (any(settings$start < min(date))) {
+        warning(
+          "start date precedes earliest available data; ",
+          "returned metrics will exclude missing data points",
+          call. = FALSE
+        )
+      }
+      if (any(settings$end > max(date))) {
+        warning(
+          "end date is later than all available data; ",
+          "returned metrics will exclude missing data points",
+          call. = FALSE
+        )
+      }
+
+      # truncate to start and end dates, returning as a list
+      out <- mapply(
+        function(x, y, z) z %within% interval(x, y),
+        x = settings$start,
+        y = settings$end,
+        MoreArgs = list(z = date),
+        SIMPLIFY = FALSE
+      )
+
+    }
+
   } else {
+
     out <- list()
     ntarget <- length(target)
     if (ntarget > 0) {
@@ -259,6 +349,7 @@ define_interval <- function(target, date, settings) {
       out[[i]] <-
         date %within% interval(target[[i]], target[[i + 1]] - days(1))
     }
+
   }
 
   # return
@@ -279,6 +370,13 @@ format_output <- function(x, target, settings) {
     "monthly" = target,
     year(target)
   )
+
+  # and need to add custom dates if start or end are provided
+  #   (defaults silently to showing end dates if both are provided)
+  if (!is.null(settings$start))
+    date <- settings$start
+  if (!is.null(settings$end))
+    date <- settings$end
 
   # return
   data.frame(date = date, metric = x)
