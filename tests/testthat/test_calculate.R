@@ -13,9 +13,27 @@ flow_sim <- data.frame(
 flow_sim$month <- month(flow_sim$date)
 flow_sim$year <- year(flow_sim$date)
 flow_sim$value <- exp(rnorm(nrow(flow_sim)))
+nsurvey <- 50
+flow_years <- sort(unique(year(flow_sim$date)))
+trigger_dates <- dmy(
+  paste(
+    sample.int(30, size = nsurvey, replace = TRUE),
+    sample(c(9:11), size = nsurvey, replace = TRUE),
+    sample(flow_years[-length(flow_years)], size = nsurvey, replace = TRUE),
+    sep = "-"
+  )
+)
+survey_dates <- dmy(
+  paste(
+    sample.int(30, size = nsurvey, replace = TRUE),
+    sample(c(4:6), size = nsurvey, replace = TRUE),
+    year(trigger_dates) + 1L,
+    sep = "-"
+  )
+)
 
 # setup: define function to calculate averages and return
-#   appopriate types
+#   appropriate types
 calculate_manual <- function(value,
                              class,
                              fun = median,
@@ -59,7 +77,7 @@ calculate_manual <- function(value,
 
 test_that("calculate returns correct survey values with different seasons", {
 
-  # all months and all years
+  # all month and all years
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
@@ -98,7 +116,7 @@ test_that("calculate returns correct survey values with different seasons", {
   }
 
   # season as a string
-  value_list <- c("full_year", "spawning", "winter", "spring")
+  value_list <- c("full_year", "winter", "spring")
   month_list <- list(1:12, 10:12, 6:8, 9:11)
   for (i in seq_along(value_list)) {
     value <- flow_sim %>% do(
@@ -586,6 +604,112 @@ test_that("calculate returns correct values with subsets", {
                              subset = c(2009, 2014))
   expect_equal(value$metric, target$metric[1])
   expect_equal(nrow(value), 1L)
+
+})
+
+test_that("calculate returns correct values with truncation", {
+
+  # check cut-off prior to survey date
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 7:18, lag = 0, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= dmy(paste0("01-07-", year(survey_dates[i]) - 1L)) &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check cut-off after trigger date
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 7:18, lag = 0, start = trigger_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(trigger_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= dmy(paste0("30-06-", year(trigger_dates[i]) + 1L))
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check cut-off prior to survey and after trigger date
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 7:18, lag = 0, start = trigger_dates, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(trigger_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check cut-off prior to survey date with annual resolution
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = annual(season = 1:12, lag = 0, end = survey_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= dmy(paste0("01-01-", year(survey_dates[i]))) &
+      flow_sim$date <= survey_dates[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check cut-off after trigger date with annual resolution
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = annual(season = 1:12, lag = 0, start = trigger_dates),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= dmy(paste0("31-12-", year(trigger_dates[i])))
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+  # check cut-off prior to survey date with annual resolution
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = annual(season = 1:12, lag = 0, start = trigger_dates, end = trigger_dates + months(1)),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(trigger_dates)) {
+    idx <- flow_sim$date >= trigger_dates[i] &
+      flow_sim$date <= trigger_dates[i] + months(1)
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
 
 })
 
