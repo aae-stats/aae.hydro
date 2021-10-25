@@ -22,11 +22,11 @@ NULL
 #'   to \code{median} but any R function that returns a single numeric value
 #'   will work. The \pkg{aae.hydro} provides three additional options:
 #'   \code{days_below}, \code{days_above}, and \code{rolling_range}
-#' @param rescale a logical or function specifying the how a metric should be
-#'   rescaled following calculation. Defaults to NULL, in which case the output
-#'   metric is not rescaled. If `TRUE`, then values are rescaled by the
-#'   long-term median of the input data. See \link{rescale} for details on
-#'   specifying functions with more nuanced calculations of rescale values.
+#' @param standardise a logical or function specifying the how a metric should be
+#'   standardised following calculation. Defaults to NULL, in which case the output
+#'   metric is not standardised. If `TRUE`, then values are standardised by the
+#'   long-term median of the input data. See \link{standardise} for details on
+#'   specifying functions with more nuanced calculations of standardise values.
 #' @param \dots any additional arguments to be passed to \code{fun}
 #'
 #' @details \code{calculate} is the main function used to calculate metrics from
@@ -40,14 +40,14 @@ NULL
 #'   details of seasonal subsetting in the \code{survey} and \code{baseline}
 #'   functions.
 #'
-#'   The \code{rescale} argument gives the option of rescaling metrics by some
+#'   The \code{standardise} argument gives the option of standardising metrics by some
 #'   other value calculated from the data, such as a long-term average. This is
-#'   included to allow standardisation of metrics among rivers. \code{rescale}
+#'   included to allow standardisation of metrics among rivers. \code{standardise}
 #'   is defined by a function that specifies four elements; the subset of years
 #'   over which the scaling value is calculated, the fun used to calculate the
 #'   scaling value, the season in which a scaling value is calculated, and any
 #'   further arguments used by the function calculating a scaling value. For
-#'   details, see \link{rescale}.
+#'   details, see \link{standardise}.
 #'
 #' @examples
 #' \dontrun{
@@ -71,14 +71,14 @@ calculate <- function(
   date,
   resolution,
   fun = median,
-  rescale = NULL,
+  standardise = NULL,
   ...
 ) {
 
-  # make copy of dates for rescale if needed
-  if (!is.null(rescale)) {
-    rescale_date <- date
-    rescale_value <- value
+  # make copy of dates for standardise if needed
+  if (!is.null(standardise)) {
+    standardise_date <- date
+    standardise_value <- value
   }
 
   # define minimal target, accounting for possible lag
@@ -92,54 +92,58 @@ calculate <- function(
   )
 
   # calculate `fun` for each survey year
-  out <- sapply(intervals, function(idx, ...) fun(value[idx], ...), ...)
+  out <- sapply(intervals$intervals, function(idx, ...) fun(value[idx], ...), ...)
 
-  # check whether we need to rescale the output
-  if (!is.null(rescale)) {
+  # expand if intervals were collapsed to remove duplicate targets
+  if (!is.null(intervals$collapsed_idx))
+    out <- out[intervals$collapsed_idx]
+
+  # check whether we need to standardise the output
+  if (!is.null(standardise)) {
 
     # if so, set some defaults
-    if (isTRUE(rescale)) {
-      rescale <- by_generic(
-        min(year(rescale_date)):max(year(rescale_date)),
+    if (isTRUE(standardise)) {
+      standardise <- by_generic(
+        min(year(standardise_date)):max(year(standardise_date)),
         fun = median,
         season = 1:12
       )
     } else {
-      if (!is.list(rescale))
-        stop("rescale must be one of NULL, TRUE, or an evaluated call",
-             " to a rescale function. See ?rescale for details",
+      if (!is.list(standardise))
+        stop("standardise must be one of NULL, TRUE, or an evaluated call",
+             " to a standardise function. See ?standardise for details",
              call. = FALSE)
-      check_rescale(rescale)
+      check_standardise(standardise)
     }
 
     # define settings for baseline calculation
     baseline_settings <- baseline(
-      season = rescale$season,
-      subset = rescale$subset
+      season = standardise$season,
+      subset = standardise$subset
     )
 
     # reduce value and date to subset if required
-    if (!is.null(rescale$subset)) {
-      idx <- identify_subset(rescale_date, baseline_settings)
-      rescale_date <- rescale_date[idx]
-      rescale_value <- rescale_value[idx]
+    if (!is.null(standardise$subset)) {
+      idx <- identify_subset(standardise_date, baseline_settings)
+      standardise_date <- standardise_date[idx]
+      standardise_value <- standardise_value[idx]
     }
 
     # now calculate the target for baseline calculation
-    rescale_target <- define_target(rescale_date, settings = baseline_settings)
-    rescale_interval <- define_interval(
-      rescale_target,
-      date = rescale_date,
+    standardise_target <- define_target(standardise_date, settings = baseline_settings)
+    standardise_interval <- define_interval(
+      standardise_target,
+      date = standardise_date,
       settings = baseline_settings
     )
 
     # now calculate `fun` for what's left
     baseline <- do.call(
-      rescale$fun,
-      c(list(rescale_value[rescale_interval[[1]]]), rescale$args)
+      standardise$fun,
+      c(list(standardise_value[standardise_interval[[1]]]), standardise$args)
     )
 
-    # and rescale output
+    # and standardise output
     out <- out / baseline
 
   }
@@ -242,6 +246,10 @@ define_season <- function(target, date, season) {
 # define observations in each target
 define_interval <- function(target, date, settings) {
 
+  # initialise index for collapsed dates (used to remove non-unique
+  #   targets)
+  collapsed_idx <- NULL
+
   # using loop to handle final case where targets are linked
   if (settings$type %in% c("survey", "baseline", "annual")) {
 
@@ -325,6 +333,18 @@ define_interval <- function(target, date, settings) {
         )
       }
 
+      # reduce to unique dates if this cuts off more than 25% of the
+      #   required dates
+      unique_target <- unique(paste(settings$start, settings$end, sep = "_"))
+      if (length(unique_target) < 0.75 * length(settings$start)) {
+        unique_dates <- strsplit(unique_target, split = "_")
+        old_start <- settings$start
+        old_end <- settings$end
+        settings$start <- ymd(sapply(unique_dates, function(x) x[1]))
+        settings$end <- ymd(sapply(unique_dates, function(x) x[2]))
+        collapsed_idx <- match(paste(old_start, old_end, sep = "_"), unique_target)
+      }
+
       # truncate to start and end dates, returning as a list
       out <- mapply(
         function(x, y, z) z %within% interval(x, y),
@@ -353,7 +373,10 @@ define_interval <- function(target, date, settings) {
   }
 
   # return
-  out
+  list(
+    intervals = out,
+    collapsed_idx = collapsed_idx
+  )
 
 }
 

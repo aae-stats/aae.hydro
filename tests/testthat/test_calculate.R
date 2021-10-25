@@ -802,15 +802,39 @@ test_that("calculate selects correct default truncation dates", {
 
 })
 
-test_that("calculate returns correct values with rescaling", {
+test_that("calculate gives correct outputs when collapsing duplicate targets", {
 
-  # annual values rescaled by long-term median in all months
+  # duplicate survey dates many times
+  survey_dates_duplicated <- rep(survey_dates, each = 20)
+
+  # check season starting late in the previous calendar year
+  value <- flow_sim %>% do(
+    calculate(
+      value = .$value,
+      date = .$date,
+      resolution = survey(season = 12:18, lag = 0, end = survey_dates_duplicated),
+      na.rm = TRUE
+    )
+  )
+  target <- rep(NA, nrow(value))
+  for (i in seq_along(survey_dates_duplicated)) {
+    idx <- flow_sim$date >= dmy(paste0("01-12-", year(survey_dates_duplicated[i]) - 1L)) &
+      flow_sim$date <= survey_dates_duplicated[i]
+    target[i] <- median(flow_sim$value[idx])
+  }
+  expect_equal(value$metric, target)
+
+})
+
+test_that("calculate returns correct values with standardising", {
+
+  # annual values standardised by long-term median in all months
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = by_median(subset = 2010:2015),
+      standardise = by_median(subset = 2010:2015),
       na.rm = TRUE
     )
   )
@@ -820,13 +844,13 @@ test_that("calculate returns correct values with rescaling", {
   target$metric <- target$metric / median(flow_sim$value)
   expect_equal(target, value)
 
-  # annual values rescaled by long-term max in all months
+  # annual values standardised by long-term max in all months
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = by_max(subset = 2010:2015),
+      standardise = by_max(subset = 2010:2015),
       na.rm = TRUE
     )
   )
@@ -836,13 +860,13 @@ test_that("calculate returns correct values with rescaling", {
   target$metric <- target$metric / max(flow_sim$value)
   expect_equal(target, value)
 
-  # annual values rescaled by long-term mean in all months
+  # annual values standardised by long-term mean in all months
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = by_mean(subset = 2010:2015),
+      standardise = by_mean(subset = 2010:2015),
       na.rm = TRUE
     )
   )
@@ -852,13 +876,13 @@ test_that("calculate returns correct values with rescaling", {
   target$metric <- target$metric / mean(flow_sim$value)
   expect_equal(target, value)
 
-  # annual values rescaled by long-term variance/generic in all months
+  # annual values standardised by long-term variance/generic in all months
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = by_generic(subset = 2010:2015, fun = var),
+      standardise = by_generic(subset = 2010:2015, fun = var),
       na.rm = TRUE
     )
   )
@@ -868,13 +892,13 @@ test_that("calculate returns correct values with rescaling", {
   target$metric <- target$metric / var(flow_sim$value)
   expect_equal(target, value)
 
-  # annual values rescaled by long-term median in subset of months
+  # annual values standardised by long-term median in subset of months
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = by_median(subset = 2010:2015, season = 1:4),
+      standardise = by_median(subset = 2010:2015, season = 1:4),
       na.rm = TRUE
     )
   )
@@ -887,30 +911,30 @@ test_that("calculate returns correct values with rescaling", {
 
 })
 
-test_that("rescale returns error when subset not specified", {
+test_that("standardise returns error when subset not specified", {
 
-  # annual values rescaled by long-term median in all months
+  # annual values standardised by long-term median in all months
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = by_median(),
+        standardise = by_median(),
         na.rm = TRUE
       )
     ),
     "subset of years must be specified"
   )
 
-  # annual values rescaled by long-term max in all months
+  # annual values standardised by long-term max in all months
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = by_max(),
+        standardise = by_max(),
         na.rm = TRUE
       )
     ),
@@ -918,28 +942,28 @@ test_that("rescale returns error when subset not specified", {
   )
 
 
-  # annual values rescaled by long-term mean in all months
+  # annual values standardised by long-term mean in all months
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = by_mean(),
+        standardise = by_mean(),
         na.rm = TRUE
       )
     ),
     "subset of years must be specified"
   )
 
-  # annual values rescaled by long-term variance/generic in all months
+  # annual values standardised by long-term variance/generic in all months
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = by_generic(fun = var),
+        standardise = by_generic(fun = var),
         na.rm = TRUE
       )
     ),
@@ -948,33 +972,33 @@ test_that("rescale returns error when subset not specified", {
 
 })
 
-test_that("rescale returns error when specified as incomplete list", {
+test_that("standardise returns error when specified as incomplete list", {
 
-  # annual values rescaled by long-term median in all months
+  # annual values standardised by long-term median in all months
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = list(subset = c(2010:2014, fun = median)),
+        standardise = list(subset = c(2010:2014, fun = median)),
         na.rm = TRUE
       )
     ),
-    "rescale must be a list containing four arguments"
+    "standardise must be a list containing four arguments"
   )
 
 })
 
-test_that("rescale can be specified directly with informative errors", {
+test_that("standardise can be specified directly with informative errors", {
 
-  # default rescale works (divide by long-term median)
+  # default standardise works (divide by long-term median)
   value <- flow_sim %>% do(
     calculate(
       value = .$value,
       date = .$date,
       resolution = annual(subset = c(2010:2014)),
-      rescale = TRUE,
+      standardise = TRUE,
       na.rm = TRUE
     )
   )
@@ -984,18 +1008,18 @@ test_that("rescale can be specified directly with informative errors", {
   target$metric <- target$metric / median(flow_sim$value)
   expect_equal(value, target)
 
-  # error if rescale isn't NULL, TRUE, or a list with correct elements
+  # error if standardise isn't NULL, TRUE, or a list with correct elements
   expect_error(
     flow_sim %>% do(
       calculate(
         value = .$value,
         date = .$date,
         resolution = annual(subset = c(2010:2014)),
-        rescale = "median",
+        standardise = "median",
         na.rm = TRUE
       )
     ),
-    "rescale must be one of "
+    "standardise must be one of "
   )
 
 })
