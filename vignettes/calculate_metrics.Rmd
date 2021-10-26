@@ -1,7 +1,7 @@
 ---
 title: "Calculating metrics from streamflow data"
 author: "Jian Yen"
-date: "27/04/2020"
+date: "26/10/2021"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
@@ -178,21 +178,21 @@ same_lagged_flow <- calculate(
 )
 ```
 
-We're often comparing flow among rivers. A straight metric (e.g., the maximum) might not be useful or comparable in several rivers of different size or structure. The `calculate` function addresses this with a rescale argument, which provides a flexible way to rescale your calculated metric by some other aspect of the flow (e.g. the long-term median flow). The rescale argument looks very similar to the resolution argument.
+We're often comparing flow among rivers. A straight metric (e.g., the maximum) might not be useful or comparable in several rivers of different size or structure. The `calculate` function addresses this with a standardise argument, which provides a flexible way to standardise your calculated metric by some other aspect of the flow (e.g. the long-term median flow). The standardise argument looks very similar to the resolution argument.
 
-```{r calculate-rescale-examples}
-# calculate median spring flow from 2009-2015, but scale it by the long-term 
+```{r calculate-standardise-examples}
+# calculate median spring flow from 2009-2015, but standardise it by the long-term 
 #   median flow from 2004-2020
 spring_flow_standardised <- calculate(
   value = flow_405232$value_stream_discharge_mld,
   date = flow_405232$date_formatted,
   resolution = survey(season = 9:11, lag = 0, subset = 2009:2015),
-  rescale = by_median(subset = 2004:2020, season = 1:12, na.rm = TRUE),
+  standardise = by_median(subset = 2004:2020, season = 1:12, na.rm = TRUE),
   na.rm = TRUE
 )
 ```
 
-This might look like a fair bit of typing, but the `rescale` argument has some defaults built-in, so you don't need to type everything out unless you want to do something different. The current defaults are `subset = all_available_years`, `fun = median` and `season = 1:12`.
+This might look like a fair bit of typing, but the `standardise` argument has some defaults built-in, so you don't need to type everything out unless you want to do something different. The current defaults are `subset = all_available_years`, `fun = median` and `season = 1:12`.
 
 ### An aside on the `survey` resolution
 
@@ -242,9 +242,48 @@ spring_flow_lagged <- calculate(
 )
 ```
 
+## Truncating observations to exclude leading or trailing data points
+
+In some cases, it can be useful to exclude leading or trailing data points from calculations. Examples include calculating metrics following onset of the monsoon season, which may differ from year to year and doesn't align with calendar months, or the exclusion of data points following a field survey because these data points clearly do not contribute to observed survey data. Truncation can be included in the `annual` and `survey` resolutions with option `start` and `end` arguments. Either or both can be provided, depending on whether leading or trailing data points need to be trimmed.
+
+```{r demonstrate-truncation}
+# survey resolution for spring in the year prior to a survey
+spring_flow <- calculate(
+  value = flow_405232$value_stream_discharge_mld,
+  date = flow_405232$date_formatted,
+  resolution = survey(season = 9:11, lag = 0, subset = 2009:2015),
+  fun = median,
+  na.rm = TRUE
+)
+
+# simulate some survey dates
+nsurvey <- 100
+min_year <- min(year(flow_405232$date_formatted))
+max_year <- max(year(flow_405232$date_formatted))
+survey_dates <- ymd(
+  paste(
+    sample((min_year + 1L):(max_year - 1L), size = nsurvey, replace = TRUE),
+    sample(4:6, size = nsurvey, replace = TRUE),
+    sample(1:30, size = nsurvey, replace = TRUE),
+    sep = "-"
+  )
+)
+
+# calculate annual daily flow average but truncate data points after the survey date
+daily_flow <- calculate(
+  value = flow_405232$value_stream_discharge_mld,
+  date = flow_405232$date_formatted,
+  resolution = survey(season = 7:18, lag = 0, end = survey_dates),
+  fun = median,
+  na.rm = TRUE
+)
+```
+
+Note that truncation provides one output per `start` or `end` date. This can be a useful trick when attempting to collate metrics for a random collection of dates (even if these aren't truncated per se) because it will save a reconfiguration/join step after standard metric calculations. Note that the use of `start` and `end` dates automatically accounts for duplicated dates to avoid excessive computation in cases where `start` or `end` dates are repeated many times.
+
 ## Working with many variables or systems
 
-The above examples might get a bit tedious if you're working with data from many systems and with many variables. This section includes a few examples to show how the `dplyr` package can be used to simplify calculations. This is currently a bit tedious but the upcoming realse of `dplyr` promises some changes that will make this much easier.
+The above examples might get a bit tedious if you're working with data from many systems and with many variables. This section includes a few examples to show how the `dplyr` package can be used to simplify calculations. This is currently a bit tedious but the upcoming realse of `dplyr` promises some changes that will make this much easier. Note: it is likely that the current version of `dplyr` in R 4.1.0 has simplified the examples below.
 
 ```{r calculate-grouped}
 # data from multiple sites but only one variable
