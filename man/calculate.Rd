@@ -7,7 +7,7 @@
 \alias{rolling_range}
 \title{Calculate custom metrics from streamflow data}
 \usage{
-calculate(value, date, resolution, fun = median, rescale = NULL, ...)
+calculate(value, date, resolution, fun = median, standardise = NULL, ...)
 
 days_below(x, threshold, ...)
 
@@ -30,11 +30,11 @@ to \code{median} but any R function that returns a single numeric value
 will work. The \pkg{aae.hydro} provides three additional options:
 \code{days_below}, \code{days_above}, and \code{rolling_range}}
 
-\item{rescale}{a logical or function specifying the how a metric should be
-rescaled following calculation. Defaults to NULL, in which case the output
-metric is not rescaled. If `TRUE`, then values are rescaled by the
-long-term median of the input data. See \link{rescale} for details on
-specifying functions with more nuanced calculations of rescale values.}
+\item{standardise}{a logical or function specifying the how a metric should be
+standardised following calculation. Defaults to NULL, in which case the output
+metric is not standardised. If `TRUE`, then values are standardised by the
+long-term median of the input data. See \link{standardise} for details on
+specifying functions with more nuanced calculations of standardise values.}
 
 \item{\dots}{any additional arguments to be passed to \code{fun}}
 
@@ -69,14 +69,14 @@ Calculate metrics at different temporal resolutions and with
   details of seasonal subsetting in the \code{survey} and \code{baseline}
   functions.
 
-  The \code{rescale} argument gives the option of rescaling metrics by some
+  The \code{standardise} argument gives the option of standardising metrics by some
   other value calculated from the data, such as a long-term average. This is
-  included to allow standardisation of metrics among rivers. \code{rescale}
+  included to allow standardisation of metrics among rivers. \code{standardise}
   is defined by a function that specifies four elements; the subset of years
   over which the scaling value is calculated, the fun used to calculate the
   scaling value, the season in which a scaling value is calculated, and any
   further arguments used by the function calculating a scaling value. For
-  details, see \link{rescale}.
+  details, see \link{standardise}.
 
 The \code{days_below} and \code{days_above} functions
   calculate the number of days below a defined threshold. Designed
