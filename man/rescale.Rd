@@ -2,40 +2,82 @@
 % Please edit documentation in R/rescale.R
 \name{rescale}
 \alias{rescale}
-\alias{by_median}
-\alias{by_mean}
-\alias{by_max}
-\alias{by_generic}
-\title{Functions to define long-term averages to rescale metrics}
+\alias{quantile_rescale}
+\alias{gcm_rescale}
+\title{Rescale hydrological data to reflect climate change scenarios}
 \usage{
-by_median(subset, season = 1:12, ...)
+quantile_rescale(
+  x,
+  reference,
+  season = NULL,
+  reference_season = NULL,
+  probs = seq(0, 1, by = 0.1)
+)
 
-by_mean(subset, season = 1:12, ...)
-
-by_max(subset, season = 1:12, ...)
-
-by_generic(subset, season = 1:12, fun = median, ...)
+gcm_rescale(x, scenario, variable, catchment, reference_year = 2065)
 }
 \arguments{
-\item{subset}{a numeric vector defining years in which the metric
-should be calculated. Can be a continuous or discontinuous set
-of years}
+\item{x}{a numeric vector to be rescaled}
 
-\item{season}{define months of year in which to calculate the
-metric (see details)}
+\item{reference}{a numeric vector to be used as a reference
+against which \code{x} is rescaled}
 
-\item{\dots}{additional arguments passed to \code{median},
-\code{mean}, \code{max}, or \code{fun} (e.g. `na.rm = TRUE`)}
+\item{season}{a vector (character or integer) assigning each
+element of \code{x} to a season. Defaults to \code{NULL}, in
+which case all values are treated as a single season}
 
-\item{fun}{a function (unquoted) used to calculate the final metric. Defaults
-to \code{median} but any R function that returns a single numeric value
-will work. The \pkg{aae.hydro} provides three additional options:
-\code{days_below}, \code{days_above}, and \code{rolling_range}}
+\item{reference_season}{a vector (character or integer) assigning each
+element of \code{reference} to a season. Defaults to \code{NULL}, in
+which case all values are treated as a single season. Note that
+\code{reference_season} must include all seasons present in
+\code{season}}
+
+\item{probs}{a numeric vector of quantile thresholds. Defaults to
+\code{seq(0, 1, by = 0.1)}, which represents decile rescaling}
+
+\item{scenario}{a character argument denoting the climate
+change scenario. One of "rcp45" or "rcp85", which are the
+Representative Concentration Pathway 4.5 and 8.5
+scenarios, respectively}
+
+\item{variable}{a character argument specifying the
+variable type. Currently implemented variables are
+"discharge" and "water_temperature"}
+
+\item{catchment}{a character argument specifying the
+Victorian catchment for which the GCM outputs are
+aggregated. Currently can be one of "upper_murray",
+"goulburn", "yarra", "lower_murray", "campaspe",
+"snowy", "werribee", "ovens", or "wimmera"}
+
+\item{reference_year}{a numeric or integer value
+denoting the year for which climate change projections
+are sought. Defaults to 2065 but can be any value
+in 1995-2075}
 }
 \value{
-a list with four elements: subset, fun, season, and args
+a vector with the same length as \code{x} but containing
+  rescaled values
+
+a vector with the same length as \code{x} but containing
+  rescaled values
 }
 \description{
-Functions to define long-term average values used to
-  standardise metrics in \code{calculate}.
+Functions to rescale hydrological data to reflect scenarios
+  of climate change using seasonal decile rescaling or averaged
+  outputs from global climate models.
+}
+\details{
+\code{quantile_rescale} adjusts values in a numeric vector
+  \code{x} so that the quantiles of this vector reflect those of a
+  \code{reference} period. A common use is to adjust historical
+  climate data to reflect contemporary observations.
+
+\code{gcm_rescale} uses aggregated outputs
+  from Global Climate Models (GCMs) to define changes
+  in discharge and water temperature under a series of
+  climate change scenarios. GCM aggregation and
+  interpretation of projections are described in
+  DELWP (2020) Guidelines for assessing the impact
+  of climate change on water availability in Victoria.
 }
