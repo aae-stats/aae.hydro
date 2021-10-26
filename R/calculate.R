@@ -140,7 +140,7 @@ calculate <- function(
     # now calculate `fun` for what's left
     baseline <- do.call(
       standardise$fun,
-      c(list(standardise_value[standardise_interval[[1]]]), standardise$args)
+      c(list(standardise_value[standardise_interval$intervals[[1]]]), standardise$args)
     )
 
     # and standardise output
