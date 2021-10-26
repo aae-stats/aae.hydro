@@ -2,12 +2,62 @@
 % Please edit documentation in R/impute.R
 \name{impute}
 \alias{impute}
-\alias{impute_hydro}
+\alias{impute_year}
+\alias{impute_rolling}
 \title{Impute missing streamflow or water temperature data}
 \usage{
-impute_hydro(x, y, method)
+impute_year(x, date, threshold = 100)
+
+impute_rolling(x, n = 5, fun = median, recursive = FALSE, max_iter = 20, ...)
+}
+\arguments{
+\item{x}{a numeric vector to be imputed}
+
+\item{date}{a \code{Date} vector listing dates for each
+elements of \code{x}}
+
+\item{threshold}{an \code{integer} value specifying the
+threshold number of \code{NA} values required to trigger
+imputation. Defaults to \code{100}}
+
+\item{n}{a \code{integer} value specifying the number of
+values over which to roll \code{fun}. Defaults to 5}
+
+\item{fun}{a \code{function} (unquoted) to calculate rolling
+values. Defaults to \code{median}, which specifies an
+n-day rolling median to fill missing values. \code{fun}
+must take an \code{na.rm} argument}
+
+\item{recursive}{a \code{logical} specifying whether
+rolling values should be calculated recursively to fill
+gaps longer than \code{n}}
+
+\item{max_iter}{set maximum number of iterations if
+\code{recursive} is \code{TRUE}}
+}
+\value{
+a numeric vector with missing values imputed
+
+a numeric vector with missing values imputed
 }
 \description{
 Functions to impute missing hydrological data using
   nearby weather data or rolling means.
+}
+\details{
+\code{impute_year} replaces values for calendar
+  years with many missing values with those from another
+  year. The level of missingness that is accepted is
+  specified with \code{threshold}.
+
+\code{impute_rolling} replaces NA values with
+  rolling averages (e.g. rolling means or medians) over
+  the preceding \code{n} days. Common implementations
+  use this approach to fill short gaps in data, such as
+  rolling means or medians over 5-10 days.
+
+  The \code{impute_rolling} function can optionally be
+  applied recursively, which fills gaps in data repeatedly
+  and allows, for example, a 5-day rolling mean to fill
+  gaps longer than 5 days.
 }
