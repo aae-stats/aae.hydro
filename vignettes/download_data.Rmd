@@ -1,7 +1,7 @@
 ---
 title: "Downloading streamflow data"
 author: "Jian Yen"
-date: "30/04/2020"
+date: "27/10/2021"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
@@ -67,3 +67,7 @@ flow_wide <- flow_data %>% pivot_wider(
 )
 
 ```
+
+## Data for other states
+
+The `fetch_hydro` function was developed to interact with the Victorian [Water Measurement Information System](https://data.water.vic.gov.au/static.htm) but includes options to interact with equivalent systems in [NSW](https://realtimedata.waternsw.com.au/) and [Queensland](https://water-monitoring.information.qld.gov.au). Database queries and all quality code checks were developed for Victoria and have not yet been tested with NSW and Queensland data. If downloading data from these services, it is strongly advised to visit the websites linked above and use `list_variables` to determine relevant variable and quality codes.

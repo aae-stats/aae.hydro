@@ -1,0 +1,199 @@
+---
+  title: "Imputing and rescaling streamflow data"
+author: "Jian Yen"
+date: "27/10/2021"
+output: rmarkdown::html_vignette
+references:
+- id: delwp2020
+  title: DELWP, 2020. Guidelines for assessing the impact of climate change on water availability in Victoria.
+  author:
+  - family: DELWP
+  container-title: Department of Environment, Land, Water and Planning
+  URL: 'https://www.water.vic.gov.au/climate-change/adaptation/guidelines'
+  issued:
+    year: 2020
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{Imputing and rescaling streamflow data}
+%\usepackage[utf8]{inputenc}
+---
+
+```{r setup, include = FALSE}
+# display code by default
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Getting started
+
+Start by loading the `aae.hydro` package and downloading some data to work with.
+
+```{r getting-started}
+# load some packages we'll use
+library(aae.hydro)
+
+# get some data to work with in the vignette
+#  (note flag to keep missing data and explicit
+#   specification of varfrom and varto to avoid
+#   confusion of variables)
+flow_data <- fetch_hydro(
+  sites = c("405232"),
+  start = "1970-01-01",
+  end = "2020-12-31",
+  options = list(varfrom = "100.00", varto = "141.00"),
+  include_missing = TRUE
+)
+```
+
+## Imputing flow data
+
+The downloaded data have quite a few missing observations in the early years (1970-1976). When data are missing, it is possible (but not necessarily advisable) to fill these gaps with some basic imputation methods. In this data set, values are missing for entire years, which makes statistical imputation methods difficult because nearby observations do not exist to inform a statistical model. A simple solution is to replace these years with other years sampled at random from the data set. This is supported by the `impute_year` function in `aae.hydro`. This function requires a threshold (number of days), and missing more than this threshold number of days in a year triggers replacement with a randomly selected year that has complete data. The function identifies and samples from leap years when required.
+
+```{r impute-years-example}
+# replace any years missing more than 100 observations with another
+#   randomly selected year
+flow_data$value_imputed <- impute_year(
+  x = flow_data$value, date = flow_data$date_formatted, threshold = 100
+)
+
+# the imputed values now have no missing values
+anyNA(flow_data$value_imputed)
+```
+
+Replacing entire years is useful when large amounts of data are missing (often not at random), and retains realistic levels of seasonal and daily variation (at the expense of inter-annual correlation structure). In cases where a smaller number of observations are missing, often at random, imputation can instead focus on retaining as much of the short-term nuance of the data as possible. A really simple method in these cases is to fill gaps with a rolling average, such as the mean of the previous 5 days. This approach is supported by the `impute_rolling` function. This function requires the number of days over which values should be averaged, and then replaces any missing values with their average over previous days. There is an option to apply this approach recursively when data gaps are longer than the specified lag (e.g. a 10 day gap in data cannot be filled with a 5 day rolling mean), although using rolling averages to fill large gaps is not recommended because it will probably remove important variation from the data.
+
+```{r impute-rolling-example}
+# add some gaps to the data
+idx <- c(100:103, 200:202, 543, 5655, 4592, 3498)
+flow_data$value_imputed[idx] <- NA
+
+# check there are NAs
+anyNA(flow_data$value_imputed)
+
+# fill these gaps with a rolling median
+flow_data$value_imputed <- impute_rolling(
+  x = flow_data$value_imputed, n = 5, fun = median
+)
+
+# check if NAs remain
+anyNA(flow_data$value_imputed)
+
+# add a larger gap
+idx <- c(100:125)
+flow_data$value_imputed[idx] <- NA
+
+# check there are NAs
+anyNA(flow_data$value_imputed)
+
+# fill these gaps with a rolling median
+flow_data$value_imputed <- impute_rolling(
+  x = flow_data$value_imputed, n = 5, fun = median
+)
+
+# NAs are still there because the gap was too long to fill
+#   with a 5 day rolling median
+anyNA(flow_data$value_imputed)
+
+# try using the function recursively (capping at 20 recursions)
+flow_data$value_imputed <- impute_rolling(
+  x = flow_data$value_imputed, n = 5, fun = median, recursive = TRUE, max_iter = 20
+)
+
+# that did the trick
+anyNA(flow_data$value_imputed)
+```
+
+The `impute_year` and `impute_rolling` functions are simplistic but work well in situations where data are not missing for too many years or for long streaks within years. More complex methods are possible, with approaches including statistical models with seasonal or daily variation, possibly incorporating weather information (rainfall and temperature) as predictor variables. These methods are not (yet) supported in `aae.hydro` but are not difficult to implement once important decisions are made (e.g. which predictors, linear or nonlinear model).
+
+## Generating climate change scenarios from streamflow data
+
+A common application of streamflow data is predictive models of what might happen under different climate change scenarios. This requires consistent methods to generate streamflow sequences under different scenarios. Several approaches are possible, with the gold standard being process-driven models that incorporate uncertainty in future weather patterns and operational decisions. In most cases, this gold standard is not feasible for widespread applications over many locations. In this case, an alternative is to use average predicted changes in climate to rescale historical observations [@delwp2020]. This approach is implemented in the `gcm_rescale` function for discharge and water temperature data in the state of Victoria, based on values derived from multiple global climate models (GCMs) and under two Representative Concentration Pathways (RCP4.5 and RCP8.5) [@delwp2020]. Rescaled values are anchored to some future year, and provide information on likely changes in (average) discharge and water temperature in that year under a particular RCP. Outputs from `gcm_rescale` provide low, medium, and high values, which represent bounds (and a middling value) based on variability among different GCMs. Note that these bounds do not denote likelihood, so that the medium or high scenarios are no more or less likely to occur than the low scenario (i.e. all scenarios should be used)
+
+```{r gcm-example}
+# create a rescaled version of discharge data under the RCP4.5 scenario
+#   as at 2050. Note that catchment and variable must be set manually here
+#   to ensure that appropriate scaling values and methods are used. The
+#   help file provides details of variables, scenarios, and catchments.
+flow_rcp45_2050 <- gcm_rescale(
+  x = flow_data$value_imputed, 
+  scenario = "rcp45", 
+  variable = "discharge",
+  catchment = "goulburn", 
+  reference_year = 2050
+)
+
+# this is a list with three elements (low, medium, high scenarios) for the 
+#   selected scenario
+names(flow_rcp45_2050)
+
+# and is just a rescaled version of the historical input data
+#   (note that the "low" scenario is actually wetter than historical observations)
+plot(
+  flow_data$value_imputed ~ flow_data$date_formatted,
+  type = "l",
+  bty = "l",
+  lwd = 3, 
+  xlab = "Date", 
+  ylab = "Discharge",
+  las = 1
+)
+for (i in seq_along(flow_rcp45_2050))
+  lines(flow_rcp45_2050[[i]] ~ flow_data$date_formatted, col = 5 - i, lwd = 1.5)
+```
+
+Other climate scenarios can be generated using an approach called quantile rescaling (often using deciles). This approach takes an input sequence and rescales it so that the quantiles match those in some target sequences (e.g. outputs from a GCM). The benefit of quantile rescaling is that it captures average shifts around average values but also accounts for potentially larger changes in the extremes of a variable's distribution, a situation likely to occur under climate change [@delwp2020]. Quantile rescaling is implemented in the `quantile_rescale` function, which requires a target sequence and returns a single, rescaled version of the input.
+
+```{r quantile-rescale-example}
+# create a rescaled version of discharge based on observed conditions from 1997
+#   onwards, when Victoria's climate shifted into a drier and more variable
+#   phase
+idx <- year(flow_data$date_formatted) < 1997
+flow_data$value_post1997 <- flow_data$value_imputed
+flow_data$value_post1997[idx] <- quantile_rescale(
+  x = flow_data$value_post1997[idx],
+  reference = flow_data$value_post1997[!idx]
+)
+
+# we can plot this, confirming it has only changed values prior to 1997
+plot(
+  flow_data$value_imputed ~ flow_data$date_formatted,
+  type = "l",
+  bty = "l",
+  lwd = 3, 
+  xlab = "Date", 
+  ylab = "Discharge",
+  las = 1
+)
+lines(flow_data$value_post1997 ~ flow_data$date_formatted, col = 2, lwd = 1.5)
+
+```
+
+Quantile rescaling is often applied within seasons to account for differences in changes in cool or warm seasons. This is supported with `season` arguments to `quantile_rescale`.
+
+```{r quantile-rescale-example}
+# define cool and warm seasons (cool = May-October)
+flow_data$season <- ifelse(month(flow_data$date_formatted) %in% c(4:10), "cool", "warm")
+
+# create a rescaled version of discharge based on observed conditions from 1997
+#   onwards, accounting for different changes in cool and warm seasons
+idx <- year(flow_data$date_formatted) < 1997
+flow_data$value_post1997_seasonal <- flow_data$value_imputed
+flow_data$value_post1997_seasonal[idx] <- quantile_rescale(
+  x = flow_data$value_post1997_seasonal[idx],
+  season = flow_data$season[idx],
+  reference = flow_data$value_post1997_seasonal[!idx],
+  reference_season = flow_data$season[!idx]  
+)
+
+# we can plot this, noting subtle differences from the non-seasonal version
+plot(
+  flow_data$value_imputed ~ flow_data$date_formatted,
+  type = "l",
+  bty = "l",
+  lwd = 3, 
+  xlab = "Date", 
+  ylab = "Discharge",
+  las = 1
+)
+lines(flow_data$value_post1997 ~ flow_data$date_formatted, col = 2, lwd = 1.5)
+lines(flow_data$value_post1997_seasonal ~ flow_data$date_formatted, col = 3, lwd = 1.5)
+```
