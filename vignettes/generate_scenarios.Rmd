@@ -1,0 +1,57 @@
+---
+  title: "Generating scenarios with streamflow data"
+author: "Jian Yen"
+date: "26/05/2022"
+output: rmarkdown::html_vignette
+references:
+  - id: delwp2020
+title: DELWP, 2020. Guidelines for assessing the impact of climate change on water availability in Victoria.
+author:
+  - family: DELWP
+container-title: Department of Environment, Land, Water and Planning
+URL: 'https://www.water.vic.gov.au/climate-change/adaptation/guidelines'
+issued:
+  year: 2020
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{Imputing and rescaling streamflow data}
+%\usepackage[utf8]{inputenc}
+---
+
+  ```{r setup, include = FALSE}
+# display code by default
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Getting started
+
+Start by loading the `aae.hydro` package and downloading some data to work with.
+
+```{r getting-started}
+# load some packages we'll use
+library(aae.hydro)
+
+# get some data to work with in the vignette
+#  (note flag to keep missing data and explicit
+#   specification of varfrom and varto to avoid
+#   confusion of variables)
+flow_data <- fetch_hydro(
+  sites = c("405232"),
+  start = "1970-01-01",
+  end = "2020-12-31",
+  options = list(varfrom = "100.00", varto = "141.00"),
+  include_missing = TRUE
+)
+```
+
+## Applying an environmental watering scenario
+
+To add
+
+## Generating hydrological series under a climate change scenario
+
+To add
+
+## Defining transitions for novel climates
+
+To add
