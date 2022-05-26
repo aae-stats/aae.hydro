@@ -5,6 +5,7 @@
 \alias{generate_scenario}
 \alias{resample_scenario}
 \alias{water_year}
+\alias{define_transition}
 \title{Generate hydrological scenarios from data}
 \usage{
 generate_scenario(
@@ -34,6 +35,15 @@ resample_scenario(
 )
 
 water_year(x)
+
+define_transition(
+  x,
+  date,
+  context,
+  context_data = NULL,
+  resolution = water_year,
+  ...
+)
 }
 \arguments{
 \item{x}{discharge data from gauge or a date vector in the case of
@@ -141,8 +151,15 @@ Functions to update hydrological data to reflect
 \code{water_year} is a function to define
   water years from date data. Included here to demonstrate
   how similar functions might be specified.
+
+\code{define_transition} is a function to define
+ transition probabilities from existing data and contexts.
 }
 \examples{
+\dontrun{
+#
+
+}
 \dontrun{
 #
 

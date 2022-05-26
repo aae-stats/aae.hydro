@@ -271,7 +271,18 @@ water_year <- function(x) {
 
 }
 
-# internal function to define transitions for a future climate
+#' @rdname scenario
+#'
+#' @export
+#'
+#' @details \code{define_transition} is a function to define
+#'  transition probabilities from existing data and contexts.
+#'
+#' @examples
+#' \dontrun{
+#' #
+#'
+#' }
 define_transition <- function(
   x,
   date,
