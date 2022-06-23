@@ -14,6 +14,8 @@ generate_scenario(
   thresholds,
   timing,
   duration,
+  change,
+  n,
   context = NULL,
   context_data = NULL,
   resolution = water_year,
@@ -31,6 +33,7 @@ resample_scenario(
   rep = 1,
   init = NULL,
   init_year = NULL,
+  y = NULL,
   ...
 )
 
@@ -62,6 +65,11 @@ currently restricted to (integer) calendar months (1 = Jan,
 \item{duration}{a list specifying the duration for which
 each threshold is applied}
 
+\item{change}{a list specifying the minimum or maximum daily change
+allowed in a hydrological sequence}
+
+\item{n}{number of time periods to sample}
+
 \item{context}{a character vector denoting the context for each
 time period or a function that can be applied to discharge data
 (default) or context data (if provided) to determine the context
@@ -82,8 +90,6 @@ the context, timing, and thresholds can be applied. See
 
 \item{\dots}{additional arguments passed to \code{context}}
 
-\item{n}{number of time periods to sample}
-
 \item{transition}{matrix with one row and column for each level
 of context, defining the transition probabilities between each
 context pair (e.g. dry to dry, dry to wet). Matrix structures
@@ -96,6 +102,9 @@ column sums to one}
 \item{init}{string denoting the initial context}
 
 \item{init_year}{initial year for resampled dates}
+
+\item{y}{extra variable to be resampled according to transitions
+and contexts defined by \code{x}}
 }
 \description{
 Functions to update hydrological data to reflect
@@ -108,10 +117,11 @@ Functions to update hydrological data to reflect
   establishing flow thresholds, timings, and durations.
 
   Each element of thresholds can be a named list or vector
-  with two values. Vectors denote lower and upper thresholds used
-  to modify discharge values, e.g., a value of c(1, 10) will set
-  all values below 1 to 1 and all values above 10 to 10. If only
-  one of these bounds is required, vectors can include -Inf and Inf.
+  with three values. Vectors denote lower, upper, and maximum thresholds
+  to modify discharge values, e.g., a value of c(1, 10, 100) will set
+  all values below 1 to a random value between 1 and 10 and all values
+  above 100 to 100. If only one of these bounds is required
+  vectors can include -Inf and Inf or NA values, which are ignored.
   Named lists are used when context is necessary. In this case, the
   context argument assigns each time period to a category that
   determines which threshold is applied.
@@ -125,11 +135,21 @@ Functions to update hydrological data to reflect
   including all relevant months, not just the bounds. For example,
   May to August is specified by c(5:8) not c(5, 8).
 
-  Duration (in days) of each threshold. This is used primarily to
+  Duration (in days) of each threshold is used primarily to
   define large flow events (freshes and overbanks), which often
   occur for several days within a month or season. If threshold
   instead defines a longer flow duration (e.g. a baseflow), then
-  duration can be set to Inf.
+  duration can be set to Inf. The parameter n specifies the
+  number of times a given event can occur in a given time
+  period. This is a vector with two values that specify lower
+  and upper bounds on the number of events, and can be set to NA
+  in cases where it is not required (e.g. baseflows).
+
+  Change can be used to specify an upper bound on the daily
+  change in flow. If a daily change exceeds this value, the
+  second day (i.e. the day of the change) is replaced with
+  the mean of surrounding values (in an iteratively widening window)
+  until the difference is less than that specified by change.
 
   Resolution is not checked internally for consistency with timing
   or context, so it is assumed that the provided arguments are

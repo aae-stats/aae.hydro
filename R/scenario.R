@@ -20,6 +20,10 @@ NULL
 #'   12 = Dec)
 #' @param duration a list specifying the duration for which
 #'   each threshold is applied
+#' @param change a list specifying the minimum or maximum daily change
+#'   allowed in a hydrological sequence
+#' @param n a list specifying the number of times a given event is
+#'   repeated
 #' @param context a character vector denoting the context for each
 #'   time period or a function that can be applied to discharge data
 #'   (default) or context data (if provided) to determine the context
@@ -42,10 +46,11 @@ NULL
 #'   establishing flow thresholds, timings, and durations.
 #'
 #'   Each element of thresholds can be a named list or vector
-#'   with two values. Vectors denote lower and upper thresholds used
-#'   to modify discharge values, e.g., a value of c(1, 10) will set
-#'   all values below 1 to 1 and all values above 10 to 10. If only
-#'   one of these bounds is required, vectors can include -Inf and Inf.
+#'   with three values. Vectors denote lower, upper, and maximum thresholds
+#'   to modify discharge values, e.g., a value of c(1, 10, 100) will set
+#'   all values below 1 to a random value between 1 and 10 and all values
+#'   above 100 to 100. If only one of these bounds is required
+#'   vectors can include -Inf and Inf or NA values, which are ignored.
 #'   Named lists are used when context is necessary. In this case, the
 #'   context argument assigns each time period to a category that
 #'   determines which threshold is applied.
@@ -59,11 +64,21 @@ NULL
 #'   including all relevant months, not just the bounds. For example,
 #'   May to August is specified by c(5:8) not c(5, 8).
 #'
-#'   Duration (in days) of each threshold. This is used primarily to
+#'   Duration (in days) of each threshold is used primarily to
 #'   define large flow events (freshes and overbanks), which often
 #'   occur for several days within a month or season. If threshold
 #'   instead defines a longer flow duration (e.g. a baseflow), then
-#'   duration can be set to Inf.
+#'   duration can be set to Inf. The parameter n specifies the
+#'   number of times a given event can occur in a given time
+#'   period. This is a vector with two values that specify lower
+#'   and upper bounds on the number of events, and can be set to NA
+#'   in cases where it is not required (e.g. baseflows).
+#'
+#'   Change can be used to specify an upper bound on the daily
+#'   change in flow. If a daily change exceeds this value, the
+#'   second day (i.e. the day of the change) is replaced with
+#'   the mean of surrounding values (in an iteratively widening window)
+#'   until the difference is less than that specified by change.
 #'
 #'   Resolution is not checked internally for consistency with timing
 #'   or context, so it is assumed that the provided arguments are
@@ -80,6 +95,8 @@ generate_scenario <- function(
   thresholds,
   timing,
   duration,
+  change,
+  n,
   context = NULL,
   context_data = NULL,
   resolution = water_year,
@@ -108,18 +125,27 @@ generate_scenario <- function(
 
     # grab relevant threshold
     threshold_tmp <- thresholds[[i]]
+    duration_tmp <- duration[[i]]
+    change_tmp <- change[[i]]
+    n_tmp <- n[[i]]
 
     # and apply it
     if (!is.null(context)) {
 
       # by context if needed
       threshold_tmp <- threshold_tmp[context]
+      duration_tmp = duration_tmp[context]
+      change_tmp = change_tmp[context]
+      n_tmp = n_tmp[context]
       xlist <- mapply(
         apply_threshold,
         xlist,
         datelist,
         threshold_tmp,
-        MoreArgs = list(timing = timing[[i]], duration = duration[[i]])
+        duration_tmp,
+        change_tmp,
+        n_tmp,
+        MoreArgs = list(timing = timing[[i]])
       )
 
     } else {
@@ -129,7 +155,13 @@ generate_scenario <- function(
         apply_threshold,
         xlist,
         datelist,
-        MoreArgs = list(threshold = threshold_tmp, timing = timing[[i]], duration = duration[[i]])
+        MoreArgs = list(
+          threshold = threshold_tmp,
+          timing = timing[[i]],
+          duration = duration_tmp,
+          change = change_tmp,
+          n = n_tmp
+        )
       )
 
     }
@@ -157,6 +189,8 @@ generate_scenario <- function(
 #' @param rep number of replicate scenarios to generate
 #' @param init string denoting the initial context
 #' @param init_year initial year for resampled dates
+#' @param y extra variable to be resampled according to transitions
+#'   and contexts defined by \code{x}
 #' @param \dots additional arguments passed to \code{context}
 #'
 #' @details \code{resample_scenario} is a function to resample from
@@ -188,6 +222,7 @@ resample_scenario <- function(
   rep = 1,
   init = NULL,
   init_year = NULL,
+  y = NULL,
   ...
 ) {
 
@@ -195,9 +230,16 @@ resample_scenario <- function(
   xlist <- define_resolution(x = x, date = date, resolution = resolution)
   datelist <- define_resolution(x = date, date = date, resolution = resolution)
 
+  # repeat for y if provided
+  ylist <- NULL
+  if (!is.null(y))
+    ylist <- define_resolution(x = y, date = date, resolution = resolution)
+
   # drop partial years
   partial <- sapply(xlist, function(x) length(x) < 365)
   xlist <- xlist[!partial]
+  if (!is.null(y))
+    ylist <- ylist[!partial]
   datelist <- datelist[!partial]
 
   # evaluate and check context
@@ -228,7 +270,8 @@ resample_scenario <- function(
     transition = transition,
     context = context,
     init = init,
-    init_year = init_year
+    init_year = init_year,
+    y = ylist
   )
 
   # collate values and dates
@@ -237,8 +280,15 @@ resample_scenario <- function(
     do.call(cbind, lapply(new_states, function(x) x$value))
   )
 
+  # add extra variable if required
+  extra_colnames <- NULL
+  if (!is.null(y)) {
+    out <- cbind(out, do.call(cbind, lapply(new_states, function(x) x$value_additional)))
+    extra_colnames <- paste0("value_additional", seq_len(rep))
+  }
+
   # add column names
-  colnames(out) <- c("date", paste0("value", seq_len(rep)))
+  colnames(out) <- c("date", paste0("value", seq_len(rep)), extra_colnames)
 
   # and return
   out
@@ -371,7 +421,17 @@ define_context <- function(x, context, context_data, ...) {
 #' @importFrom lubridate month
 #'
 # internal function to apply a threshold based on key arguments
-apply_threshold <- function(x, date, threshold, timing, duration, ...) {
+apply_threshold <- function(
+  x,
+  date,
+  threshold,
+  duration,
+  change,
+  n,
+  timing,
+  ntry = 20,
+  ...
+) {
 
   # pull out the target months
   idx <- month(date) %in% timing
@@ -380,26 +440,79 @@ apply_threshold <- function(x, date, threshold, timing, duration, ...) {
   #   otherwise just return x unchanged
   if (any(idx)) {
 
-    # work out duration if it's a short flow event
-    if (!is.infinite(duration)) {
+    # work out duration and number of events if it's a short flow event
+    if (any(!is.infinite(duration))) {
 
-      # choose a random start date for the flow event
-      start <- sample(which(idx), size = 1)
-      end <- start + duration - 1L
+      # specify default n if NA
+      if (all(is.na(n)))
+        n <- c(1, 1)
 
-      # pull it back if the end date is beyond the final available date
-      if (end > max(which(idx))) {
-        end <- max(which(idx))
-        start <- end - duration + 1L
+      # work out number of events needed
+      n <- sample(n[1]:n[2], size = 1, replace = FALSE)
+
+      # sample duration if needed
+      duration <- sample(duration[1]:duration[2], size = 1, replace = FALSE)
+
+      # loop over all n
+      idy <- matrix(FALSE, nrow = length(date), ncol = n)
+      for (i in seq_len(n)) {
+
+        # choose a random start date for the flow event,
+        #   assuming there's at least one day within this window
+        if (any(idx)) {
+          start <- sample(which(idx), size = 1)
+          end <- start + duration - 1L
+
+          # pull it back if the end date is beyond the final available date
+          if (end > max(which(idx))) {
+            end <- max(which(idx))
+            start <- end - duration + 1L
+          }
+
+          # update for that event
+          idy[, i][start:end] <- TRUE
+
+          # and drop these out of idx, the available dates for other events,
+          #   including a window to ensure events don't overlap
+          idx[(start - duration - 1L):(end + duration + 1L)] <- FALSE
+        }
+
       }
-      idx <- rep(FALSE, length(date))
-      idx[start:end] <- TRUE
+
+      # collapse into a vector for all events
+      idx <- apply(idy, 1, any)
 
     }
 
-    # apply the threshold
-    x[idx] <- ifelse(x[idx] < threshold[1], threshold[1], x[idx])
-    x[idx] <- ifelse(x[idx] > threshold[2], threshold[2], x[idx])
+    # apply the threshold if not NA
+    if (is.na(threshold[2]))
+      threshold[2] <- threshold[1]
+    if (!is.na(threshold[1]))
+      x[idx] <- ifelse(x[idx] < threshold[1], runif(sum(idx), min = threshold[1], max = threshold[2]), x[idx])
+    if (!is.na(threshold[3]))
+      x[idx] <- ifelse(x[idx] > threshold[3], threshold[3], x[idx])
+
+    # and apply the change rules if required
+    ## TODO: remove for now, doing some weird things
+    # if (!is.na(change)) {
+    #   xdiff <- abs(diff(x[idx]))
+    #   to_smooth <- which(xdiff > change)
+    #   if (length(to_smooth) > 0) {
+    #     for (i in seq_along(to_smooth)) {
+    #       diff_cur <- x[idx][to_smooth[i] + 1L] - x[idx][to_smooth[i]]
+    #       tries <- 0L
+    #       while(diff_cur > change & tries < ntry) {
+    #         start <- ifelse(to_smooth[i] > tries, to_smooth[i] - tries, 1)
+    #         end <- ifelse((to_smooth[i] + tries + 2L) < sum(idx), to_smooth[i] + tries + 2L, sum(idx))
+    #         x[idx][to_smooth[i] + 1L] <-  mean(x[idx][start:end])
+    #         tries <- tries + 1L
+    #         if (start == 1 & end == sum(idx))
+    #           tries <- ntry
+    #         diff_cur <- x[idx][to_smooth[i] + 1L] - x[idx][to_smooth[i]]
+    #       }
+    #     }
+    #   }
+    # }
 
   }
 
@@ -414,7 +527,7 @@ apply_threshold <- function(x, date, threshold, timing, duration, ...) {
 #'
 # function to initialise and sample years based on a sequence of context
 #   and state transition probabilities
-update_state <- function(x, date, n, transition, context, init, init_year, ...) {
+update_state <- function(x, date, n, transition, context, init, init_year, y = NULL, ...) {
 
   # define new sequence starting from init
   all_states <- rownames(transition)
@@ -450,6 +563,10 @@ update_state <- function(x, date, n, transition, context, init, init_year, ...) 
     date = do.call(c, date),
     value = do.call(c, x[idx])
   )
+
+  # add extra variables if required
+  if (!is.null(y))
+    out$value_additional <- do.call(c, y[idx])
 
   # remove Feb 29 from any sequences to keep everything the same length
   idy <- day(out$date) == 29 & month(out$date) == 2
