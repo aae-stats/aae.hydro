@@ -629,7 +629,7 @@ expand_missing <- function(data, start, end, include_qc) {
     unlist(
       tapply(
         data$date_formatted,
-        list(data$variable_code, data$site_code),
+        list(data$variable_code, data$varfrom_code, data$site_code),
         function(x) int_length(int_diff(x))
       )
     )
