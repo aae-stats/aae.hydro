@@ -38,11 +38,23 @@ impute_year <- function(x, date, threshold = 100) {
     default = FALSE
   )
 
-  # fill unavailable years with data from available years,
-  #   accounting for leap years
+  # work out available years and target years
   year_set <- as.numeric(names(available))
   target <- year_set[!available]
   source <- year_set[available]
+
+  # check year lengths and remove any partial years from source
+  year_lengths <- sapply(
+    sort(unique(year(date))),
+    function(.x, .y) sum(year(.y) == .x),
+    .y = date
+  )
+  all_years <- sort(unique(year(date)))
+  full_years <- all_years[year_lengths %in% c(366, 365)]
+  source <- source[source %in% full_years]
+
+  # fill unavailable years with data from available years,
+  #   accounting for leap years
   if (length(target) > 0) {
     x <- resample_discharge_internal(
       x, date, target = target, source = source
@@ -55,6 +67,8 @@ impute_year <- function(x, date, threshold = 100) {
 }
 
 # internal function to resample years of discharge, accounting for leap years
+#' @importFrom dplyr `%>%` pull filter mutate left_join
+#' @importFrom lubridate year month day leap_year
 resample_discharge_internal <- function(x, date, target, source) {
 
   # create a data.frame to resample
@@ -104,12 +118,12 @@ resample_discharge_internal <- function(x, date, target, source) {
     )
 
   # combine with target years and arrange chronologically
-  resampled <- resampled %>%
-    bind_rows(data %>% filter(year(date) %in% source)) %>%
-    arrange(date)
+  data <- data %>%
+    left_join(resampled, by = "date", suffix = c("_source", "_target")) %>%
+    mutate(x_imputed = ifelse(is.na(x_source), x_target, x_source))
 
   # and return value only
-  resampled[, 2]
+  data %>% pull(x_imputed)
 
 }
 
