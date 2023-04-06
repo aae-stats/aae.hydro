@@ -325,6 +325,29 @@ water_year <- function(x) {
 #'
 #' @export
 #'
+#' @importFrom lubridate month year
+#'
+#' @details \code{calendar_year} is a function to define
+#'   calendar years from date data. Included along with
+#'   \code{water_year} to demonstrate how similar
+#'   functions might be specified.
+#'
+#' @examples
+#' \dontrun{
+#' #
+#'
+#' }
+calendar_year <- function(x) {
+
+  # return calendar year directly
+  year(x)
+
+}
+
+#' @rdname scenario
+#'
+#' @export
+#'
 #' @details \code{define_transition} is a function to define
 #'  transition probabilities from existing data and contexts.
 #'
@@ -547,15 +570,25 @@ update_state <- function(x, date, n, transition, context, init, init_year, y = N
   # define dates with updated years
   date <- date[idx]
   for (i in seq_along(date)) {
+
+    # need to work out if dates are water years or not
+    if (month(date[[i]])[1] == 7) {
+      year_set <- ifelse(month(date[[i]]) > 6, init_year + i - 1L, init_year + i)
+    } else {
+      year_set <- rep(init_year + i, length(date[[i]]))
+    }
+
+    # and paste together with days and months
     date[[i]] <- dmy(
       paste(
         day(date[[i]]),
         month(date[[i]]),
-        ifelse(month(date[[i]]) > 6, init_year + i - 1L, init_year + i),
+        year_set,
         sep = "-"
       ),
       quiet = TRUE
     )
+
   }
 
   # flatten outputs

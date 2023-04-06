@@ -5,6 +5,7 @@
 \alias{generate_scenario}
 \alias{resample_scenario}
 \alias{water_year}
+\alias{calendar_year}
 \alias{define_transition}
 \title{Generate hydrological scenarios from data}
 \usage{
@@ -38,6 +39,8 @@ resample_scenario(
 )
 
 water_year(x)
+
+calendar_year(x)
 
 define_transition(
   x,
@@ -172,10 +175,19 @@ Functions to update hydrological data to reflect
   water years from date data. Included here to demonstrate
   how similar functions might be specified.
 
+\code{calendar_year} is a function to define
+  calendar years from date data. Included along with
+  \code{water_year} to demonstrate how similar
+  functions might be specified.
+
 \code{define_transition} is a function to define
  transition probabilities from existing data and contexts.
 }
 \examples{
+\dontrun{
+#
+
+}
 \dontrun{
 #
 
