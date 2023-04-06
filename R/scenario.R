@@ -497,7 +497,9 @@ apply_threshold <- function(
 
           # and drop these out of idx, the available dates for other events,
           #   including a window to ensure events don't overlap
-          idx[(start - duration - 1L):(end + duration + 1L)] <- FALSE
+          idx_start <- (start - duration - 1L)
+          idx_start <- ifelse(idx_start < 1, 1, idx_start)
+          idx[idx_start:(end + duration + 1L)] <- FALSE
         }
 
       }
