@@ -289,12 +289,20 @@ get_gcm_factor <- function(
         rcp45 = list(low = c(16.5, 10.7), medium = c(-3.8, -7.6), high = c(-35.0, -36.5))
       ),
       ovens = list(
-        rcp85 = list(low = c(11.7, 1.2), medium = c(-10.8, -6.0), high = c(-23.3, -43.9)),
+        rcp85 = list(low = c(11.7, 1.2), medium = c(-10.8, -15.7), high = c(-23.3, -43.9)),
         rcp45 = list(low = c(12.8, 9.6), medium = c(-6.0, -15.9), high = c(-31.0, -34.4))
       ),
       wimmera = list(
         rcp85 = list(low = c(12.1, 12.3), medium = c(-6.5, -14.4), high = c(-32.3, -53.1)),
         rcp45 = list(low = c(21.0, 11.5), medium = c(-4.4, -12.0), high = c(-33.8, -38.6))
+      ),
+      broken = list(
+        rcp85 = list(low = c(18.6, 8.1), medium = c(-9.7, -16.8), high = c(-35.9, -50.0)),
+        rcp45 = list(low = c(18.4, 12), medium = c(-6.7, -12.6), high = c(-36.3, -38.4))
+      ),
+      loddon = list(
+        rcp85 = list(low = c(12.4, 6.9), medium = c(-7.4, -17.6), high = c(-36.6, -57.6)),
+        rcp45 = list(low = c(31.5, 13.6), medium = c(-8.5, -14.1), high = c(-38.0, -43.0))
       ),
       default = list(
         rcp85 = list(low = c(8.7, 1.5), medium = c(-8.5, -15.9), high = c(-24.7, -43.8)),
