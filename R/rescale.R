@@ -177,7 +177,8 @@ gcm_rescale <- function(
   if (!catchment %in% c(
     "upper_murray", "goulburn", "yarra",
     "lower_murray", "campaspe", "snowy",
-    "werribee", "ovens", "wimmera"
+    "werribee", "ovens", "wimmera",
+    "loddon", "broken"
   )) {
     warning(
       "catchment not implemented; using default Victorian values",
@@ -352,6 +353,14 @@ get_gcm_factor <- function(
       ),
       wimmera = list(
         rcp85 = list(low = c(1.0, 1.9), medium = c(1.3, 2.3), high = c(1.6, 2.9)),
+        rcp45 = list(low = c(0.7, 1.1), medium = c(1.0, 1.5), high = c(1.3, 1.9))
+      ),
+      broken = list(
+        rcp85 = list(low = c(1.0, 2.0), medium = c(1.4, 2.5), high = c(1.6, 3.0)),
+        rcp45 = list(low = c(0.7, 1.2), medium = c(1.0, 1.6), high = c(1.4, 2.0))
+      ),
+      loddon = list(
+        rcp85 = list(low = c(1.0, 1.9), medium = c(1.3, 2.4), high = c(1.6, 2.9)),
         rcp45 = list(low = c(0.7, 1.1), medium = c(1.0, 1.5), high = c(1.3, 1.9))
       ),
       default = list(

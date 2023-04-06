@@ -1,8 +1,8 @@
 Package: aae.hydro
 Type: Package
 Title: Download and Summarise Streamflow Data in R
-Version: 0.0.1.9000
-Date: 2022-05-26
+Version: 0.0.1.9001
+Date: 2023-04-06
 Author: c(
   person(given = "Jian",
          family = "Yen",
