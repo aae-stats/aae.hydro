@@ -317,6 +317,13 @@ format_json_flow <- function(response) {
 
     # and put it back together
     out <- do.call(rbind, raw_data)
+
+    # sometimes this has zero cols but one row, which breaks everything that
+    #   follows, fill with a NA data.frame in this case
+    if (ncol(out) == 0)
+      out <- as.data.frame(matrix(NA, nrow = 1, ncol = 3))
+
+    # add some column names
     colnames(out) <- c("value", "date", "quality_code")
 
     # tidy the dates a bit
