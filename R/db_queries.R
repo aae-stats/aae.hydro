@@ -341,20 +341,20 @@ format_json_flow <- function(response) {
     out$units <- rep(varto_info$units, times = n_obs)
 
     # qc_reference is tricky because it might be one or more columns of data
-    qc_reference <-
-      output$traces$quality_codes[rep(seq_along(raw_data), times = n_obs), ,
-                                  drop = FALSE]
+    qc_idx <- rep(seq_along(raw_data), times = n_obs)
+    qc_reference <- output$traces$quality_codes[qc_idx, , drop = FALSE]
 
     # in cases where there's no data in the query, quality_codes won't be a
     #    field in the output, make up a single NA in this case
     if (is.null(qc_reference)) {
-      qc_reference <- matrix(NA, nrow = nobs, ncol = 1)
+      qc_reference <- matrix(NA, nrow = n_obs, ncol = 1)
       colnames(qc_reference) <- "no_data"
     }
 
     # refine colnames and add this to the main output
-    colnames(qc_reference) <- paste0("quality_reference_",
-                                     colnames(qc_reference))
+    colnames(qc_reference) <- paste0(
+      "quality_reference_", colnames(qc_reference)
+    )
     out <- cbind(out, qc_reference)
 
   } else {
