@@ -320,8 +320,10 @@ format_json_flow <- function(response) {
 
     # sometimes this has zero cols but one row, which breaks everything that
     #   follows, fill with a NA data.frame in this case
-    if (ncol(out) == 0)
+    if (ncol(out) == 0) {
       out <- as.data.frame(matrix(NA, nrow = 1, ncol = 3))
+      nobs <- nrow(out)
+    }
 
     # add some column names
     colnames(out) <- c("value", "date", "quality_code")
@@ -342,6 +344,15 @@ format_json_flow <- function(response) {
     qc_reference <-
       output$traces$quality_codes[rep(seq_along(raw_data), times = n_obs), ,
                                   drop = FALSE]
+
+    # in cases where there's no data in the query, quality_codes won't be a
+    #    field in the output, make up a single NA in this case
+    if (is.null(qc_reference)) {
+      qc_reference <- matrix(NA, nrow = nobs, ncol = 1)
+      colnames(qc_reference) <- "no_data"
+    }
+
+    # refine colnames and add this to the main output
     colnames(qc_reference) <- paste0("quality_reference_",
                                      colnames(qc_reference))
     out <- cbind(out, qc_reference)
