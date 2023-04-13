@@ -322,7 +322,7 @@ format_json_flow <- function(response) {
     #   follows, fill with a NA data.frame in this case
     if (ncol(out) == 0) {
       out <- as.data.frame(matrix(NA, nrow = 1, ncol = 3))
-      nobs <- nrow(out)
+      n_obs <- nrow(out)
     }
 
     # add some column names
