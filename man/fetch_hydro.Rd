@@ -2,6 +2,7 @@
 % Please edit documentation in R/fetch_hydro.R
 \name{fetch_hydro}
 \alias{fetch_hydro}
+\alias{fetch_rating}
 \alias{check_quality}
 \title{Download data from Victorian WMIS}
 \usage{
@@ -17,10 +18,13 @@ fetch_hydro(
   state = "vic"
 )
 
+fetch_rating(sites, interval = 0.5, options = list(), state = "vic")
+
 check_quality(data)
 }
 \arguments{
-\item{sites}{a character or numeric vector of site codes (gauge numbers)}
+\item{sites}{a character or numeric vector of site codes (gauge numbers).
+Only a single value can be used with \code{fetch_rating}}
 
 \item{start}{start date for downloaded data. Date format is flexible but
 for most reliable results use yyyy-mm-dd}
@@ -39,7 +43,8 @@ to include dates where data are missing}
 quality control values. This information can be retrieved with
 \link{check_quality}}
 
-\item{options}{a \code{list} specifying one of four advanced options:
+\item{options}{a \code{list} specifying one of four advanced options (only
+varfrom and varto can be specified with \code{fetch_rating}):
 - the interval type (defaults to "daily") for calculation of downloaded
   values
 - the data_type (defaults to "mean") for aggregation of downloaded values
@@ -56,11 +61,16 @@ all available data_sources for a given site}
 \item{state}{state of interest; one of Victoria, New South Wales, or
 Queensland}
 
+\item{interval}{the gap between input levels used to generate the rating
+table}
+
 \item{data}{a \code{data.frame} returned by \code{fetch_hydro}}
 }
 \value{
 a \code{data.frame} containing the downloaded flow data and relevant
   identifiers for each observation.
+
+a \code{list} containing the downloaded gauge information.
 }
 \description{
 Download data from the Victorian Water Measurement
@@ -79,6 +89,13 @@ Streamflow and related data (e.g. temperature) are recorded as
   containing any of the following will be recognised: \code{"flow"},
   \code{"discharge"}, \code{"depth"}, \code{"height"}, \code{"temp"},
   \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
+
+Rating tables are used to convert gauge heights to discharge.
+  These tables would rarely need to be used by the end user but may provide
+  useful information in some cases. In addition, this function returns
+  additional information about a gauge, including the cease-to-flow (CTF)
+  threshold, that is, the level (in m) at which the system will have zero
+  flow.
 
 tabulates data by QC code, with descriptions of each QC code.
 }
@@ -147,6 +164,21 @@ flow_data <- fetch_hydro(
   start = "2004-01-01",
   end = "2020-04-21",
   variables = c("flow", "temp", "depth"),
+  options = list(
+    varfrom = "100.00",
+    varto = "141.00"
+  )
+)
+
+}
+
+\dontrun{
+
+# fetch the rating table for several gauges, at an interval of
+#   0.5 m
+gauge_info <- fetch_rating(
+  sites = 405232,
+  interval = 0.5,
   options = list(
     varfrom = "100.00",
     varto = "141.00"
