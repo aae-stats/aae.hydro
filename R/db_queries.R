@@ -283,58 +283,85 @@ query_database <- function(sites,
 }
 
 #'
-#' @importFrom httr GET
+#' @importFrom httr2 request req_body_json req_perform
 #'
 # prepare and submit query to WMIS
-query_rating <- function(sites,
-                           start, end,
-                           varfrom, varto,
-                           options,
-                           data_source,
-                           state,
-                           var_list = NULL) {
+query_rating <- function(
+    sites,
+    varfrom,
+    varto,
+    interval,
+    state
+) {
+
+  # can only pass in a single site for this function
+  if (length(sites) > 1) {
+    stop(
+      "sites must be a single value when querying rating tables",
+      call. = FALSE
+    )
+  }
 
   # get database address
   address <- get_address(state)
 
   # define the query
-  if (is.null(var_list)) {
-    query <- list(
-      "site_list" = paste0(sites, collapse = ","),
-      "start_time" = start,
-      "end_time" = end,
-      "varfrom" = varfrom,
-      "varto" = varto,
-      "interval" = options$interval,
-      "data_type" = options$data_type,
-      "multiplier" = options$multiplier,
-      "datasource" = data_source,
-      "function" = "get_ts_traces",
-      "version" = "3",
-      "ver" = "2",
-      "return_type" = "hash"
-    )
-  } else {
-    query <- list(
-      "site_list" = paste0(sites, collapse = ","),
-      "start_time" = start,
-      "end_time" = end,
-      "var_list" = var_list,
-      "interval" = options$interval,
-      "data_type" = options$data_type,
-      "multiplier" = options$multiplier,
-      "datasource" = data_source,
-      "function" = "get_ts_traces",
-      "version" = "3",
-      "ver" = "2",
-      "return_type" = "hash"
+  query <- list(
+    "params" = list(
+      "site_list" = sites,
+      "table_from" = varfrom,
+      "table_to" = varto,
+      "interval" = interval
+    ),
+    "function" = "get_effective_rating",
+    "version" = "1"
+  )
+
+  # send it off and return the output
+  httr2::request(address) |>
+    httr2::req_body_json(query) |>
+    httr2::req_perform()
+
+}
+
+#'
+#' @importFrom httr2 request req_body_json req_perform
+#'
+# prepare and submit query to WMIS
+query_gauge <- function(
+    sites,
+    state
+) {
+
+  # can only pass in a single site for this function
+  if (length(sites) > 1) {
+    stop(
+      "sites must be a single value when querying gauges",
+      call. = FALSE
     )
   }
 
-  # send it off
-  response <- GET(address, query = query)
+  # get database address
+  address <- get_address(state)
+
+  # define the query
+  query <- list(
+    "params" = list(
+      "filter_values" = list("station" = sites),
+      "table_name" = "site",
+      "return_type" = "hash"
+    ),
+    "function" = "get_db_info",
+    "version" = "3"
+  )
+
+  # send it off and return the output
+  httr2::request(address) |>
+    httr2::req_body_json(query) |>
+    httr2::req_perform()
 
 }
+
 
 # get database address from state
 get_address <- function(state) {
