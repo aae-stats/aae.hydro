@@ -268,6 +268,219 @@ fetch_hydro <- function(sites, start, end, variables,
 
 }
 
+
+# TODO: update this
+#' @rdname fetch_hydro
+#'
+#' @export
+#'
+#' @param sites a character or numeric vector of site codes (gauge numbers)
+#' @param start start date for downloaded data. Date format is flexible but
+#'    for most reliable results use yyyy-mm-dd
+#' @param end end date for downloaded data. Date format is flexible but
+#'    for most reliable results use yyyy-mm-dd
+#' @param variables a character or numeric vector of variable names or codes.
+#'    Many variations are accounted for (e.g. streamflow, flow, discharge).
+#'    WMIS variable codes will work.
+#' @param include_missing a \code{logical} defining whether to pad output data
+#'   to include dates where data are missing
+#' @param include_qc a \code{logical} defining whether to return information on
+#'   quality control values. This information can be retrieved with
+#'   \link{check_quality}
+#' @param options a \code{list} specifying one of four advanced options:
+#'    - the interval type (defaults to "daily") for calculation of downloaded
+#'      values
+#'    - the data_type (defaults to "mean") for aggregation of downloaded values
+#'    - the multiplier (defaults to "1") used to expand or shrink the requested
+#'      interval
+#'    - varfrom and varto (default to NULL) to specify explicit variable
+#'      conversions with WMIS variable codes. Both varfrom and varto must
+#'      be provided
+#' @param data_source database from which data are downloaded. Defaults to "A",
+#'   which covers most cases. The \code{list_datasources} function will list
+#'   all available data_sources for a given site
+#' @param state state of interest; one of Victoria, New South Wales, or
+#'   Queensland
+#'
+#' @details Streamflow and related data (e.g. temperature) are recorded as
+#'   instantaneous values, so must be aggregated prior to download. The default
+#'   settings specify daily means, but other options are available with the
+#'   \code{options} parameter.
+#'
+#'   Dates and variable names are interpreted loosely. Dates will recognise any
+#'   of the following formats: \code{"ymd"}, \code{"dmy"}, \code{"y"},
+#'   \code{"ymd_HMS"}, and \code{"ymd_HM"}. Variables will ignore case and
+#'   remove all spaces and underscores. Once tidied, any variable name
+#'   containing any of the following will be recognised: \code{"flow"},
+#'   \code{"discharge"}, \code{"depth"}, \code{"height"}, \code{"temp"},
+#'   \code{"cond"}, \code{"ox"}, \code{"do"}, and \code{"turb"}.
+#'
+#' @return a \code{data.frame} containing the downloaded flow data and relevant
+#'   identifiers for each observation.
+#'
+#' @examples
+#' \dontrun{
+#'
+#' flow_data <- fetch_rating(
+#'   sites = c("405232", "406276", "406278"),
+#'   start = "2004-01-01",
+#'   end = "2020-04-21",
+#'   variables = c("flow", "temp", "depth"),
+#'   options = list(
+#'     varfrom = "100.00",
+#'     varto = "141.00"
+#'   )
+#' )
+#'
+#' }
+#'
+fetch_rating <- function(sites, start, end, variables,
+                        include_missing = FALSE,
+                        include_qc = FALSE,
+                        options = list(),
+                        data_source = "A",
+                        state = "vic") {
+
+
+  # TODO: Update, use this query
+  # https://data.water.vic.gov.au/cgi/webservice.exe?{"function":"get_effective_rating","version":"1","params":{"site_list":"405232","table_from":"100","interval":"0.9","table_to":"141"}}
+
+  # set default options
+  opt <- list(
+    interval = "daily",
+    data_type = "mean",
+    multiplier = "1",
+    varfrom = NULL,
+    varto = NULL
+  )
+  opt[names(options)] <- options
+
+  # are these options?
+  opt <- check_options(opt)
+
+  # reformat dates
+  dates <- parse_dates(start, end)
+
+  # check state and tidy the name if needed
+  state <- parse_state(state)
+
+  # get variables if varfrom/varto/var_list not provided
+  if (is.null(opt$varfrom) | is.null(opt$varto)) {
+    vars <- parse_variables(variables,
+                            sites,
+                            dates$start,
+                            dates$end,
+                            data_source = data_source,
+                            state = state)
+  } else {
+    vars <- list(varfrom = opt$varfrom, varto = opt$varto)
+  }
+
+  # check if we can use var_list to vectorise the query
+  var_list <- NULL
+  if (all(vars$varfrom == vars$varto))
+    var_list <- paste0(vars$varto, collapse = ",")
+
+  # if we can just run all variables and sites at once
+  if (!is.null(var_list)) {
+
+    # send off a query
+    response <- query_database(
+      sites = paste0(sites, collapse = ","),
+      start = dates$start,
+      end = dates$end,
+      var_list = var_list,
+      options = opt,
+      data_source = data_source,
+      state = state
+    )
+
+    # extract and reformat the output
+    output <- format_json_flow(response)
+
+  } else {
+
+    output <- vector("list", length = length(vars$varfrom))
+
+    # we need to do it separately for each variable
+    for (i in seq_along(vars$varfrom)) {
+
+      # send query
+      response <- query_database(
+        sites = paste0(sites, collapse = ","),
+        start = dates$start,
+        end = dates$end,
+        varfrom = vars$varfrom[i],
+        varto = vars$varto[i],
+        options = opt,
+        data_source = data_source,
+        state = state
+      )
+
+      # format output so it's readable
+      tmp <- format_json_flow(response)
+
+      # if there's no output, add a placeholder so we know that
+      #   variable is missing
+      if (is.null(tmp)) {
+        output[[i]] <- fill_missing(dates,
+                                    vars$varfrom[i],
+                                    vars$varto[i],
+                                    sites)
+      } else {
+        output[[i]] <- tmp
+      }
+
+    }
+
+    # make sure all list elements have the same columns for quality_reference
+    output <- standardise_columns(output)
+
+    # flatten this into a single data.frame
+    output <- do.call(rbind, output)
+
+  }
+
+  # do we want to keep qc info?
+  if (!include_qc)
+    output <- output[, !grepl("quality_reference", colnames(output))]
+
+  # expand around missing observations
+  if (include_missing)
+    output <- expand_missing(output, dates$start, dates$end, include_qc)
+
+  # check if vicwater has included missing data with a value (usually 0.0)
+  missing_with_value <- output$quality_code >= 250 & !is.na(output$value)
+  if (any(missing_with_value)) {
+
+    # make output columns slightly more informative
+    output$value[missing_with_value] <- NA
+
+    # add qc info if required
+    if (include_qc)
+      output$quality_reference_255[missing_with_value] <- "Missing data"
+
+    # remove these if !include_missing
+    if (!include_missing)
+      output <- output[!missing_with_value, ]
+
+  }
+
+  # standardise column classes
+  output$value <- as.numeric(output$value)
+
+  # and clean up variable names
+  output$variable_name <- gsub("\\(|\\)|/", "", output$variable_name)
+  output$variable_name <- gsub(" ", "_", output$variable_name)
+  output$variable_name <- gsub("\u00B0C", "c", output$variable_name)
+  output$variable_name <- tolower(output$variable_name)
+
+
+  # and return
+  output
+
+}
+
 #'
 #' @importFrom lubridate parse_date_time
 #'

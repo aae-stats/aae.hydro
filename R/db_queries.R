@@ -282,6 +282,60 @@ query_database <- function(sites,
 
 }
 
+#'
+#' @importFrom httr GET
+#'
+# prepare and submit query to WMIS
+query_rating <- function(sites,
+                           start, end,
+                           varfrom, varto,
+                           options,
+                           data_source,
+                           state,
+                           var_list = NULL) {
+
+  # get database address
+  address <- get_address(state)
+
+  # define the query
+  if (is.null(var_list)) {
+    query <- list(
+      "site_list" = paste0(sites, collapse = ","),
+      "start_time" = start,
+      "end_time" = end,
+      "varfrom" = varfrom,
+      "varto" = varto,
+      "interval" = options$interval,
+      "data_type" = options$data_type,
+      "multiplier" = options$multiplier,
+      "datasource" = data_source,
+      "function" = "get_ts_traces",
+      "version" = "3",
+      "ver" = "2",
+      "return_type" = "hash"
+    )
+  } else {
+    query <- list(
+      "site_list" = paste0(sites, collapse = ","),
+      "start_time" = start,
+      "end_time" = end,
+      "var_list" = var_list,
+      "interval" = options$interval,
+      "data_type" = options$data_type,
+      "multiplier" = options$multiplier,
+      "datasource" = data_source,
+      "function" = "get_ts_traces",
+      "version" = "3",
+      "ver" = "2",
+      "return_type" = "hash"
+    )
+  }
+
+  # send it off
+  response <- GET(address, query = query)
+
+}
+
 # get database address from state
 get_address <- function(state) {
   switch(
