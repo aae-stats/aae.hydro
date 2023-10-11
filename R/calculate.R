@@ -191,7 +191,7 @@ define_target <- function(date, settings) {
   # return minimal target based on type
   target <- unique(
     floor_date(
-      date, unit = settings$unit, week_start = (wday(date[1]) - 1)
+      date, unit = settings$unit, week_start = wday(date[1])
     )
   )
 
