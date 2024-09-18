@@ -369,7 +369,7 @@ get_address <- function(state) {
     state,
     "nsw" = "https://realtimedata.waternsw.com.au/cgi/webservice.pl",
     "qld" = "https://water-monitoring.information.qld.gov.au/cgi/webservice.pl",
-    "http://data.water.vic.gov.au/cgi/webservice.pl"
+    "http://data.water.vic.gov.au/WMIS/cgi/webservice.pl"
   )
 }
 
