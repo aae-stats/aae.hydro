@@ -11,7 +11,7 @@ You can install the `aae.hydro` package from GitHub. Although the package doesn'
 install.packages("remotes")
 
 # install the aae.hydro package from GitHub
-remotes::install_github("aae.stats/aae.hydro")
+remotes::install_github("aae-stats/aae.hydro")
 ```
 
 Once completed, you should be able to load the `aae.hydro` package with `library(aae.hydro)`.
