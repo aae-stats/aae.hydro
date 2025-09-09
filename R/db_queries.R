@@ -69,8 +69,11 @@ list_variables <- function(sites, data_source = NULL, state = "vic") {
       '"},"function":"get_variable_list","version":"1"}&ver=2'
     )
 
+    # replace quotes with correct symbol in query
+    query <- gsub('\\\"', "\\%22", query)
+
     # send query
-    response <- GET(address, query = query)
+    response <- GET(paste0(address, "?", query))
 
     # convert output into a readable table
     tmp <- format_json_vars(response)
@@ -114,11 +117,14 @@ list_datasources <- function(sites, state = "vic") {
     '"},"function":"get_datasources_by_site","version":"1"}&ver=2'
   )
 
+  # replace quotes with correct symbol in query
+  query <- gsub('\\\"', "\\%22", query)
+
   # send query
-  response <- GET(address, query = query)
+  response <- GET(paste0(address, "?", query))
 
   # return as unformatted list
-  fromJSON(content(response, as = "text"))$return$sites
+  fromJSON(content(response, as = "text", encoding = "UTF-8"))$return$sites
 
 }
 
@@ -182,7 +188,7 @@ check_available <- function(sites, start, end, variables, data_source, state) {
 format_json_vars <- function(response) {
 
   # pull out the results
-  output_list <- fromJSON(content(response, as = "text"))
+  output_list <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
 
   # extract the relevant info into separate objects
   site_details <- output_list$return$sites$site_details
@@ -383,7 +389,7 @@ get_address <- function(state) {
 format_json_flow <- function(response) {
 
   # turn the output into something readable
-  output <- fromJSON(content(response, as = "text"))$return
+  output <- fromJSON(content(response, as = "text", encoding = "UTF-8"))$return
 
   # now break it down into components
   raw_data <- output$traces$trace

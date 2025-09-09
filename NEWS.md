@@ -1,5 +1,10 @@
 ## aae.hydro (development version)
 
+## aae.hydro v0.0.1.9004
+
+- fix bug in string requests to web server
+- explicitly state encoding for json formatting
+
 ## aae.hydro v0.0.1.9003
 
 - add functions to fetch gauge information and rating tables using httr2
